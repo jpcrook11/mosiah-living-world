@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>The Living Lands of Mosiah</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:#0c0e15;color:#e9e5d9;font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100vh;height:100dvh;}
+#topbar{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid #2b3043;
+  background:linear-gradient(180deg,#13151f,#0e1018);z-index:30;flex:none;overflow-x:auto;}
+#brand{display:flex;flex-direction:column;line-height:1.05;flex:none;margin-right:4px;}
+#brand .t{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:#f3efe2;letter-spacing:.02em;white-space:nowrap;}
+#brand .s{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:#c9a227;}
+.chip{font-family:inherit;font-size:12px;font-weight:600;color:#9a9caa;cursor:pointer;background:#181b27;
+  border:1px solid #2b3043;border-radius:999px;padding:7px 11px;white-space:nowrap;flex:none;
+  transition:color .15s,border-color .15s,background .15s;}
+.chip:hover{color:#e9e5d9;border-color:#3a4058;}
+.chip.on{color:#1a1505;background:#c9a227;border-color:#c9a227;}
+#stage{flex:1;position:relative;min-height:0;overflow:hidden;}
+#scene{width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+#scene.grab{cursor:grabbing;}
+.float{position:absolute;z-index:20;}
+#zoomctl{right:11px;top:11px;display:flex;flex-direction:column;gap:6px;}
+#zoomctl button{width:38px;height:38px;border-radius:10px;border:1px solid #2b3043;background:rgba(20,23,33,.82);
+  color:#e9e5d9;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(4px);}
+#zoomctl button:hover{background:rgba(31,35,51,.95);}
+#zoomctl svg{width:17px;height:17px;}
+#hint{left:11px;top:11px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8a8ea2;
+  background:rgba(16,18,25,.6);border:1px solid #2b3043;border-radius:8px;padding:6px 9px;backdrop-filter:blur(3px);
+  pointer-events:none;max-width:60%;}
+#dock{flex:none;border-top:1px solid #2b3043;background:linear-gradient(180deg,#15182230,#0f111a);z-index:30;
+  padding:10px 13px calc(10px + env(safe-area-inset-bottom));}
+#transport{display:flex;align-items:center;gap:9px;}
+.tc{width:40px;height:40px;border-radius:50%;border:1px solid #2b3043;background:#1f2333;color:#e9e5d9;
+  cursor:pointer;display:grid;place-items:center;flex:none;}
+.tc:hover{background:#262b3d;}
+#playBtn{background:linear-gradient(180deg,#caa531,#a9851d);border-color:#caa531;color:#1a1505;width:46px;height:46px;}
+.tc svg{width:17px;height:17px;}
+#scenebox{flex:1;min-width:0;}
+#sceneTitle{font-size:15px;font-weight:700;color:#f1ede1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#sceneMeta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#c9a227;margin-top:2px;letter-spacing:.02em;}
+#scrubber{display:flex;gap:3px;margin-top:10px;}
+#scrubber .tick{flex:1;height:5px;border-radius:3px;background:#262b3d;cursor:pointer;transition:background .2s;}
+#scrubber .tick.past{background:#4a5169;}#scrubber .tick.now{background:#c9a227;}
+#content{margin-top:10px;font-size:13px;line-height:1.5;color:#cbc8bd;min-height:34px;}
+#content .cap{display:flex;gap:8px;align-items:flex-start;}
+#content .cap .pin{flex:none;margin-top:1px;}
+.lm{background:#181b27;border:1px solid #2b3043;border-left:3px solid #c9a227;border-radius:11px;padding:11px 12px;position:relative;}
+.lm .x{position:absolute;right:8px;top:6px;background:none;border:0;color:#9a9caa;font-size:16px;cursor:pointer;}
+.lm .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:#c9a227;}
+.lm .n{font-family:'Cinzel',serif;font-size:16px;color:#f3efe2;margin:2px 0 4px;}
+.lm .i{font-size:12.5px;color:#c7c4ba;line-height:1.5;}
+#walkBtn{position:absolute;right:12px;bottom:12px;z-index:21;display:flex;align-items:center;gap:7px;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:12.5px;color:#1a1505;background:linear-gradient(180deg,#d8b340,#b48f22);border:1px solid #e2c052;border-radius:999px;padding:9px 14px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);}
+#walkBtn svg{width:16px;height:16px;}
+#walkBtn:hover{filter:brightness(1.06);}
+#walkUI{position:absolute;inset:0;z-index:30;display:none;}
+#walkUI.on{display:block;}
+#stage.walking #zoomctl,#stage.walking #hint{display:none;}
+#lookPad{position:absolute;right:0;top:0;width:60%;height:100%;touch-action:none;cursor:grab;}
+#joy{position:absolute;left:20px;bottom:24px;width:116px;height:116px;border-radius:50%;background:rgba(14,16,24,.4);border:1px solid rgba(201,162,39,.5);touch-action:none;}
+#joyKnob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#e7c64a,#a9851d);border:1px solid #ecd06a;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+#exitWalk{position:absolute;left:14px;top:14px;display:flex;align-items:center;gap:6px;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:12px;color:#e9e5d9;background:rgba(14,16,24,.72);border:1px solid #2b3043;border-radius:9px;padding:8px 12px;cursor:pointer;}
+#exitWalk svg{width:15px;height:15px;}
+#viewToggle{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.04em;color:#e9e5d9;background:rgba(14,16,24,.72);border:1px solid #2b3043;border-radius:9px;padding:8px 11px;cursor:pointer;}
+#walkHint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#cfccc1;background:rgba(14,16,24,.5);border:1px solid #2b3043;border-radius:8px;padding:6px 11px;white-space:nowrap;pointer-events:none;}
+#walkHint b{color:#f0c843;}
+#talkPrompt{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);display:none;align-items:center;gap:7px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;color:#f3efe2;background:rgba(20,18,12,.88);border:1px solid #b9912b;border-radius:20px;padding:9px 16px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);white-space:nowrap;}
+#talkPrompt b{color:#f0c843;font-weight:700;}
+#talkPrompt .k{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#1a1206;background:#f0c843;border-radius:4px;padding:1px 6px;}
+#talkBox{position:absolute;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);width:min(560px,92vw);background:rgba(16,15,22,.95);border:1px solid #3a3550;border-radius:14px;padding:15px 17px 14px;opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;box-shadow:0 10px 34px rgba(0,0,0,.5);box-sizing:border-box;}
+#talkBox.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+#talkName{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:#f0e3c0;margin-bottom:5px;}
+#talkName .role{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#caa23a;margin-left:7px;}
+#talkText{font-family:'Hanken Grotesk',sans-serif;font-size:14px;line-height:1.5;color:#e7e2d6;margin-bottom:12px;}
+#talkText i{color:#b9b39f;}
+#talkText .purse{display:inline-block;margin-left:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7fd0a0;}
+#talkOpts{display:flex;flex-direction:column;gap:7px;}
+#talkOpts button{text-align:left;font-family:'Hanken Grotesk',sans-serif;font-size:13px;color:#ece7db;background:rgba(40,38,54,.7);border:1px solid #43405c;border-radius:9px;padding:9px 12px;cursor:pointer;transition:background .12s,border-color .12s;}
+#talkOpts button:hover{background:rgba(58,54,78,.92);border-color:#c9a227;}
+#talkOpts button .price{float:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#f0c843;font-weight:600;}
+#talkOpts button.leave{color:#cfccc1;background:transparent;border-color:#34324a;text-align:center;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div id="brand"><span class="t">The Living Lands of Mosiah</span><span class="s">walkable world</span></div>
+  <button class="chip" data-go="nephi">Lehi-Nephi</button>
+  <button class="chip" data-go="mormon">Waters of Mormon</button>
+  <button class="chip" data-go="helam">Helam</button>
+  <button class="chip" data-go="zarahemla">Zarahemla</button>
+</div>
+
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <div class="float" id="hint">Drag to roam &middot; pinch/scroll to zoom &middot; tap a landmark</div>
+  <div class="float" id="zoomctl">
+    <button id="zin" aria-label="in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button id="zout" aria-label="out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+    <button id="zfit" aria-label="recenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></svg></button>
+  </div>
+  <button id="walkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4a1.6 1.6 0 1 0 0-.01M9 20l2-5 1.5-2M11 9l3 1 2 3M11 9l-2 2-3 1M14 14l1 6"/></svg>Walk here</button>
+  <div id="walkUI">
+    <div id="lookPad"></div>
+    <button id="exitWalk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Exit walk</button>
+    <button id="viewToggle">View: 3rd</button>
+    <div id="walkHint">WASD / arrows or joystick to move &middot; drag to look &middot; <b>E</b> to talk</div>
+    <button id="talkPrompt"></button>
+    <div id="talkBox"><div id="talkName"></div><div id="talkText"></div><div id="talkOpts"></div></div>
+    <div id="joy"><div id="joyKnob"></div></div>
+  </div>
+</div>
+
+<div id="dock">
+  <div id="transport">
+    <button class="tc" id="prevBtn" aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="tc" id="playBtn" aria-label="play"><svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="tc" id="nextBtn" aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div id="scenebox"><div id="sceneTitle">&mdash;</div><div id="sceneMeta">&mdash;</div></div>
+  </div>
+  <div id="scrubber"></div>
+  <div id="content"></div>
+</div>
+
+<script>
+"use strict";
+/* ===================== UTIL ===================== */
+var TW=64, TH=32;
+function iso(c,r){ return { x:(c-r)*(TW/2), y:(c+r)*(TH/2) }; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function hx(h){ h=(h+"").replace('#',''); if(h.length<6) return [128,128,128]; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+function shade(hex,f){ var c=hx(hex); function g(x){return clamp(Math.round(f<0? x*(1+f) : x+(255-x)*f),0,255);} return 'rgb('+g(c[0])+','+g(c[1])+','+g(c[2])+')'; }
+function mkRng(seed){ var s=(seed||1)>>>0; return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+function now(){ return performance.now(); }
+
+/* ===================== CANVAS / CAMERA ===================== */
+var canvas=document.getElementById("scene"), ctx=canvas.getContext("2d");
+var DPR=Math.min(window.devicePixelRatio||1, 2);
+var Wc=0, Hc=0;
+function resize(){ var st=document.getElementById("stage"); Wc=st.clientWidth; Hc=st.clientHeight;
+  canvas.width=Math.round(Wc*DPR); canvas.height=Math.round(Hc*DPR); canvas.style.width=Wc+"px"; canvas.style.height=Hc+"px"; }
+window.addEventListener("resize",function(){ resize(); });
+var cam={x:0,y:0,zoom:1, tx:0,ty:0,tz:1, anim:false,t0:0,sx:0,sy:0,sz:1};
+function focusWorld(wx,wy,zoom,animate){ var z=clamp(zoom,0.5,2.6); var nx=Wc/2 - wx*z, ny=Hc/2 - wy*z;
+  if(animate){ cam.tx=nx; cam.ty=ny; cam.tz=z; cam.anim=true; cam.t0=now(); cam.sx=cam.x; cam.sy=cam.y; cam.sz=cam.zoom; }
+  else { cam.x=nx; cam.y=ny; cam.zoom=z; cam.anim=false; } }
+function zoomAround(sx,sy,factor){ var nz=clamp(cam.zoom*factor,0.5,2.8); var k=nz/cam.zoom;
+  cam.x = sx-(sx-cam.x)*k; cam.y = sy-(sy-cam.y)*k; cam.zoom=nz; cam.anim=false; }
+function w2s(p){ return { x:p.x*cam.zoom+cam.x, y:p.y*cam.zoom+cam.y }; }
+
+/* ===================== INPUT ===================== */
+var pointers={}, panLast=null, pinch=0, didPan=false, downXY=null;
+function rel(e){ var b=canvas.getBoundingClientRect(); return {x:e.clientX-b.left, y:e.clientY-b.top}; }
+canvas.addEventListener("pointerdown",function(e){ if(WALK.active) return; canvas.setPointerCapture(e.pointerId); var p=rel(e); pointers[e.pointerId]=p;
+  var n=Object.keys(pointers).length; didPan=false; downXY=p; cam.anim=false;
+  if(n===1){ panLast=p; canvas.classList.add("grab"); } else if(n===2){ var a=Object.values(pointers); pinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); panLast=null; } });
+canvas.addEventListener("pointermove",function(e){ if(WALK.active) return; if(!pointers[e.pointerId]) return; var p=rel(e); pointers[e.pointerId]=p;
+  var a=Object.values(pointers), n=a.length;
+  if(n===1 && panLast){ cam.x+=p.x-panLast.x; cam.y+=p.y-panLast.y; panLast=p; if(downXY && Math.hypot(p.x-downXY.x,p.y-downXY.y)>6) didPan=true; }
+  else if(n===2){ var d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); var mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2; if(pinch>0) zoomAround(mx,my,d/pinch); pinch=d; didPan=true; } });
+function up(e){ if(pointers[e.pointerId]) delete pointers[e.pointerId]; var a=Object.values(pointers);
+  if(a.length===0){canvas.classList.remove("grab");panLast=null;pinch=0;} else if(a.length===1){panLast=a[0];pinch=0;} }
+canvas.addEventListener("pointerup",up); canvas.addEventListener("pointercancel",up);
+canvas.addEventListener("wheel",function(e){ if(WALK.active) return; e.preventDefault(); var p=rel(e); zoomAround(p.x,p.y, e.deltaY<0?1.12:1/1.12); },{passive:false});
+canvas.addEventListener("click",function(e){ if(WALK.active) return; if(didPan){ didPan=false; return; } var p=rel(e);
+  var wx=(p.x-cam.x)/cam.zoom, wy=(p.y-cam.y)/cam.zoom; var best=null,bd=9999;
+  (world.landmarks||[]).forEach(function(L){ var d=Math.hypot(wx-L.ax,wy-L.ay); if(d<bd){bd=d;best=L;} });
+  if(best && bd<46){ showLandmark(best); } });
+
+/* ===================== PALETTES (base per place) ===================== */
+var PAL={
+  nephi:{ tiles:{grass:"#6c7f4c",dirt:"#9c7f55",road:"#a7adba",water:"#2f6f6a",field:"#9a8350",plaza:"#b2b6c0"},
+    bldg:{top:"#d8cba8",left:"#bcae8a",right:"#998b6c"}, roof:["#bd6b3e","#8f4f30"] },
+  zarahemla:{ tiles:{grass:"#5f7d44",dirt:"#9a7d4f",road:"#b0b3a6",water:"#2f6f6a",field:"#94854a",plaza:"#c2c4b6"},
+    bldg:{top:"#e6dab6",left:"#cabb93",right:"#a89a7c"}, roof:["#c89a4a","#9a6f2c"] },
+  mormon:{ tiles:{grass:"#4f6e3e",dirt:"#7d6a44",road:"#8f9488",water:"#246a64",field:"#7d6a44",plaza:"#9aa093"},
+    bldg:{top:"#cfc6a6",left:"#b0a684",right:"#8e856a"}, roof:["#9a6f3a","#7c592c"] },
+  helam:{ tiles:{grass:"#69804a",dirt:"#9a7f52",road:"#a3a8b2",water:"#2f6f6a",field:"#9c8a50",plaza:"#b0b4be"},
+    bldg:{top:"#d4c8a6",left:"#b6a884",right:"#928568"}, roof:["#b07a44","#8c5f30"] }
+};
+
+/* ===================== MOODS (per scene time-of-day) ===================== */
+/* sun:[color,xFrac,yFrac,intensity]  tint=full-screen wash recolouring the world */
+var MOODS={
+  golden:{ sky:["#3a3650","#eab667"], sun:["#ffe2a0",0.68,0.74,0.55], tint:"rgba(255,176,84,0.17)", hill:"#5b4a52" },
+  day:{    sky:["#2c3a5a","#a6b8cd"], sun:["#f4e6bd",0.74,0.18,0.45], tint:"rgba(255,250,235,0.04)", hill:"#46506e" },
+  harsh:{  sky:["#3b486a","#cbd2de"], sun:["#fbf4dc",0.6,0.14,0.5],  tint:"rgba(255,245,210,0.06)", hill:"#4a546e" },
+  dusk:{   sky:["#241a33","#c06a48"], sun:["#f6a256",0.72,0.66,0.5], tint:"rgba(150,64,70,0.22)", hill:"#3a2738" },
+  ashen:{  sky:["#3a404e","#8c9198"], sun:["#cfd3da",0.55,0.18,0.22],tint:"rgba(96,104,114,0.30)", hill:"#444a54" },
+  dawn:{   sky:["#283150","#dcc28c"], sun:["#ffe9b4",0.30,0.30,0.42], tint:"rgba(196,172,120,0.15)", mist:true, hill:"#3c4a55" },
+  storm:{  sky:["#171a24","#474c5b"], sun:["#6a6f7e",0.5,0.14,0.18],  tint:"rgba(16,18,32,0.44)", storm:true, hill:"#23262f" },
+  night:{  sky:["#0d1226","#2b3654"], sun:["#cfd8ff",0.80,0.16,0.22], tint:"rgba(22,32,72,0.46)", night:true, hill:"#161b2d" },
+  radiant:{sky:["#1d2542","#d3c2e4"], sun:["#fff7da",0.5,0.14,0.85],  tint:"rgba(255,250,224,0.08)", rays:true, hill:"#3a3a56" }
+};
+var STAGE={ mood:MOODS.day, embers:false, lightning:0, dim:0, beam:false, heroBoost:1.05, shot:"establish" };
+
+/* ===================== WORLD ===================== */
+var world={ grid:[], n:0, ents:[], actors:[], walk:[], landmarks:[], pal:PAL.nephi, place:"nephi", focus:{tile:[8,8]}, tower:null, primaryHero:null, _pool:null };
+
+function tileOpen(g,c,r){ if(c<0||r<0||c>=g.n||r>=g.n) return false; var t=g.grid[r][c]; return (t==="grass"||t==="dirt"||t==="road"||t==="field"||t==="plaza"); }
+function markOcc(occ,c,r,w,d){ for(var i=0;i<w;i++)for(var j=0;j<d;j++){ var cc=c+i,rr=r+j; if(occ[rr]) occ[rr][cc]=true; } }
+function makeActor(c,r,kind,rng,g,gather){ return { c:c,r:r, tc:c,tr:r, kind:kind, sp:0.5+rng()*0.5, phase:rng()*6.28, face:1,
+  idle:false, pose:"walk", scale:1, gather:gather||null, wait:0, rng:rng, g:g }; }
+function staticActor(W,c,r,kind,scale){ var a=makeActor(c,r,kind,mkRng(Math.floor(c*7+r*13)+5),W); a.idle=true; a.scale=scale||1; return a; }
+function addCitizens(W,occ,count,rng,gather,clump){
+  var open=[]; for(var r=0;r<W.n;r++)for(var c=0;c<W.n;c++){ if(tileOpen(W,c,r) && !(occ[r]&&occ[r][c])) open.push([c,r]); }
+  if(!open.length) return;
+  for(var i=0;i<count;i++){ var pt;
+    if(gather && rng()<(clump||0)){ pt=[ clamp(Math.round(gather[0]+(rng()*8-4)),1,W.n-2), clamp(Math.round(gather[1]+(rng()*8-4)),1,W.n-2) ]; if(!tileOpen(W,pt[0],pt[1])) pt=open[Math.floor(rng()*open.length)]; }
+    else pt=open[Math.floor(rng()*open.length)];
+    W.actors.push(makeActor(pt[0]+0.5,pt[1]+0.5,"citizen",rng,W,gather)); }
+}
+
+/* --- City generator (Nephi / Zarahemla) --- */
+function genCity(place,opts){
+  var pal=PAL[place]; var rng=mkRng(opts.seed||7); var style=opts.style||place;
+  var n=opts.n||22; var grid=[]; for(var r=0;r<n;r++){ grid[r]=[]; for(var c=0;c<n;c++) grid[r][c]="grass"; }
+  var occ=[]; for(var r2=0;r2<n;r2++){occ[r2]=[];}
+  var bx0=3,by0=3,bx1=n-4,by1=n-4;
+  for(var r3=by0;r3<=by1;r3++)for(var c3=bx0;c3<=bx1;c3++) grid[r3][c3]="dirt";
+  var rMid=Math.floor((by0+by1)/2), cMid=Math.floor((bx0+bx1)/2);
+  for(var c4=bx0;c4<=bx1;c4++) grid[rMid][c4]="road";
+  for(var r4=by0;r4<=by1;r4++) grid[r4][cMid]="road";
+  if(style==="zarahemla"){ for(var pr=rMid-1;pr<=rMid+1;pr++)for(var pc=cMid-1;pc<=cMid+1;pc++) grid[pr][pc]="plaza"; }
+  var W={ grid:grid, n:n, ents:[], actors:[], walk:[], landmarks:[], pal:pal, place:place, focus:{tile:[cMid,rMid]}, tower:null, primaryHero:null };
+
+  if(opts.walls){
+    for(var c5=bx0-1;c5<=bx1+1;c5++){ pushWall(W,occ,c5,by0-1); pushWall(W,occ,c5,by1+1); }
+    for(var r5=by0;r5<=by1;r5++){ pushWall(W,occ,bx0-1,r5); pushWall(W,occ,bx1+1,r5); }
+    var gateR=by1+1; var gi=W.ents.findIndex(function(e){return e.type==="wall"&&e.c===cMid&&e.r===gateR;}); if(gi>=0) W.ents.splice(gi,1);
+    W.ents.push({type:"gate",c:cMid,r:gateR,w:1,d:1}); markOcc(occ,cMid,gateR,1,1); W.gate=[cMid,gateR];
+    W.landmarks.push(landmark("gate","City gate","Entrance",cMid,gateR,1,1,24,"The road south runs from this gate across the narrow strip of wilderness toward distant Zarahemla."));
+  } else { W.gate=[cMid,by1+1]; }
+  var tcx=cMid-1, tcy=by0+1; pushTemple(W,occ,tcx,tcy);
+  W.landmarks.push(landmark("temple", place==="zarahemla"?"The Temple of Zarahemla":"Temple of Nephi","Sacred house",tcx,tcy,3,2,52, place==="zarahemla"?"From a tower beside this temple King Benjamin gathered the people for his covenant sermon.":"The temple the colony built in the land of Nephi."));
+  W.temple=[tcx,tcy];
+  var twx=cMid+2, twy=by0+1; var anchor=pushTower(W,occ,twx,twy, opts.towerH||84, style);
+  W.tower={x:twx,y:twy,anchor:anchor};
+  W.landmarks.push(landmark("tower", place==="zarahemla"?"Benjamin's Tower":"King Noah's Tower","Royal tower",twx,twy,1,1,opts.towerH||84, place==="zarahemla"?"The tower King Benjamin built so the whole multitude could hear his words.":"The lofty tower King Noah built, overlaid with fine wood and ornament."));
+  pushHouse(W,occ,bx0+1,by1-2,2,2,pal.roof[0],true);
+  for(var s=0;s<4;s++){ var sc=cMid-2+s; var srr=rMid+2; if(tileOpen(W,sc,srr)&&!(occ[srr]&&occ[srr][sc])){ W.ents.push({type:"stall",c:sc,r:srr,w:1,d:1,color:["#b5603a","#3a6f8f","#8f7a3a","#6f8f5a"][s%4]}); markOcc(occ,sc,srr,1,1);} }
+  if(tileOpen(W,cMid+1,rMid+3)&&!(occ[rMid+3]&&occ[rMid+3][cMid+1])){ W.ents.push({type:"well",c:cMid+1,r:rMid+3,w:1,d:1}); markOcc(occ,cMid+1,rMid+3,1,1); }
+  W.ents.push({type:"banner",c:tcx-1,r:tcy+2,w:1,d:1,color:style==="zarahemla"?"#6ea0e0":"#c9a227"});
+  W.ents.push({type:"torch",c:twx,r:twy+2,w:1,d:1}); W.ents.push({type:"torch",c:twx-2,r:twy+2,w:1,d:1});
+  var roofMain = style==="zarahemla"? 0:1;
+  for(var ph=by0;ph<=by1-1;ph+=2){ for(var pw2=bx0;pw2<=bx1-1;pw2+=2){
+    if((occ[ph]&&occ[ph][pw2])||grid[ph][pw2]==="road"||grid[ph][pw2]==="plaza") continue;
+    if(Math.abs(pw2-cMid)<=1 || Math.abs(ph-rMid)<=1) continue; // keep the main streets clear
+    if(rng()<0.52){ pushHouse(W,occ,pw2,ph,1,1, pal.roof[rng()<0.62?roofMain:1-roofMain], false); } } }
+  addMerchants(W,occ,place,cMid,rMid);
+  scatterProps(W,occ,rng,place);
+  if(style==="zarahemla"){ scatterInside(W,occ,rng,4); scatterNature(W,occ,rng,22,4); }
+  else { scatterNature(W,occ,rng,26,6); }
+  return W;
+}
+function addMerchants(W,occ,place,cMid,rMid){
+  var wares = place==="zarahemla"
+    ? [{n:"fine linen",p:2},{n:"a measure of grain",p:1},{n:"a jar of honey",p:2},{n:"a copper bowl",p:2},{n:"salted fish",p:1},{n:"a gold ring",p:3}]
+    : [{n:"a measure of barley",p:1},{n:"dried figs",p:1},{n:"woven cloth",p:2},{n:"a clay jar",p:1},{n:"a flask of olive oil",p:2},{n:"a bronze knife",p:3}];
+  var spots=[[cMid-3,rMid+1],[cMid+2,rMid+1],[cMid-1,rMid+2]], names=["Market Trader","Cloth Merchant","Grain Seller"];
+  for(var i=0;i<2;i++){ var s=spots[i]; if(!s) break; var c=s[0],r=s[1]; if(c<1||r<1||c>=W.n-1||r>=W.n-1) continue; if(!tileOpen(W,c,r)||(occ[r]&&occ[r][c])) continue;
+    var a=makeActor(c+0.5,r+0.5,"citizen",mkRng(900+i*31+(place==="zarahemla"?7:0)),W); a.idle=true; a.pose="trade"; a.merchant=true; a.name=names[i]; a.sub="Trader"; a.wares=wares; a.face=1; W.actors.push(a); } }
+function scatterProps(W,occ,rng,place){
+  function tryPlace(type,extra,onGrass){ for(var t=0;t<40;t++){ var c=2+Math.floor(rng()*(W.n-4)), r=2+Math.floor(rng()*(W.n-4)); var g=W.grid[r]&&W.grid[r][c];
+    var ok=onGrass?(g==="grass"):(g==="dirt"); if(ok && !(occ[r]&&occ[r][c])){ var e={type:type,c:c,r:r,w:1,d:1}; if(extra) for(var k in extra) e[k]=extra[k]; W.ents.push(e); if(type==="crate"||type==="cart") markOcc(occ,c,r,1,1); return true; } } return false; }
+  for(var i=0;i<5;i++) tryPlace("bush",{v:rng()});
+  for(var i=0;i<6;i++) tryPlace("flowers",{col:["#d98fb0","#e0c24a","#cf6a5a","#b58fd0"][Math.floor(rng()*4)]});
+  for(var i=0;i<3;i++) tryPlace("crate",{});
+  for(var i=0;i<3;i++) tryPlace("pot",{});
+  for(var i=0;i<2;i++) tryPlace("sheep",{}, place==="helam");
+  if(W.gate){ var gc=W.gate[0]-2, gr=W.gate[1]-1; if(gc>1&&gr>1&&W.grid[gr]&&tileOpen(W,gc,gr)&&!(occ[gr]&&occ[gr][gc])){ W.ents.push({type:"cart",c:gc,r:gr,w:1,d:1}); markOcc(occ,gc,gr,1,1); } }
+  for(var i=0;i<10;i++) tryPlace("bush",{v:rng()},true);
+}
+function scatterInside(W,occ,rng,trees){ var t=0,tries=0; while(t<trees&&tries<200){tries++; var c=3+Math.floor(rng()*(W.n-6)), r=3+Math.floor(rng()*(W.n-6));
+  if((W.grid[r][c]==="dirt")&&!(occ[r]&&occ[r][c])){ W.ents.push({type:"tree",c:c,r:r,w:1,d:1,v:rng()}); markOcc(occ,c,r,1,1); t++; } } }
+function pushWall(W,occ,c,r){ if(c<0||r<0||c>=W.n||r>=W.n) return; W.ents.push({type:"wall",c:c,r:r,w:1,d:1}); markOcc(occ,c,r,1,1); }
+function pushHouse(W,occ,c,r,w,d,roof,big){ W.ents.push({type:"house",c:c,r:r,w:w,d:d,roof:roof,h:big?30:22,big:!!big}); markOcc(occ,c,r,w,d); }
+function pushTemple(W,occ,c,r){ W.ents.push({type:"temple",c:c,r:r,w:3,d:2,h:40}); markOcc(occ,c,r,3,2); }
+function pushTower(W,occ,c,r,H,style){ W.ents.push({type:"tower",c:c,r:r,w:1,d:1,h:H,style:style}); markOcc(occ,c,r,1,1); var p=iso(c+0.5,r+0.5); return {x:p.x, y:p.y-H-12}; }
+function scatterNature(W,occ,rng,trees,rocks){ var tries=0;
+  while(trees>0 && tries<500){ tries++; var c=Math.floor(rng()*W.n), r=Math.floor(rng()*W.n);
+    if(W.grid[r][c]==="grass" && !(occ[r]&&occ[r][c])){ W.ents.push({type:"tree",c:c,r:r,w:1,d:1,v:rng()}); markOcc(occ,c,r,1,1); trees--; } }
+  tries=0; while(rocks>0 && tries<200){ tries++; var c2=Math.floor(rng()*W.n), r2=Math.floor(rng()*W.n);
+    if(W.grid[r2][c2]==="grass" && !(occ[r2]&&occ[r2][c2])){ W.ents.push({type:"rock",c:c2,r:r2,w:1,d:1}); markOcc(occ,c2,r2,1,1); rocks--; } } }
+function landmark(id,name,kind,c,r,w,d,h,info){ var p=iso(c+w/2,r+d/2); return {id:id,name:name,kind:kind,info:info,ax:p.x,ay:p.y-h*0.6}; }
+
+/* --- Wilderness (Waters of Mormon) --- */
+function genWilderness(opts){
+  var pal=PAL.mormon; var rng=mkRng(opts.seed||21); var n=20; var grid=[]; var occ=[];
+  for(var r=0;r<n;r++){ grid[r]=[]; occ[r]=[]; for(var c=0;c<n;c++) grid[r][c]="grass"; }
+  var W={ grid:grid, n:n, ents:[], actors:[], walk:[], landmarks:[], pal:pal, place:"mormon", focus:{tile:[10,10]}, tower:null, primaryHero:null };
+  var px=8,py=9;
+  for(var i=0;i<4;i++)for(var j=0;j<3;j++){ var cc=px+i,rr=py+j; if(rng()>0.12){ grid[rr][cc]="water"; markOcc(occ,cc,rr,1,1);} }
+  W.landmarks.push({id:"waters",name:"Waters of Mormon",kind:"Wilderness fountain",info:"A fountain of pure water in the forest. Here Alma baptized about 450 believers and organized the church in secret.",ax:iso(px+2,py+1.5).x, ay:iso(px+2,py+1.5).y-12});
+  var tries=0,trees=46; while(trees>0 && tries<700){ tries++; var c=Math.floor(rng()*n), r=Math.floor(rng()*n);
+    var nearPool=(c>=px-1&&c<=px+4&&r>=py-1&&r<=py+3);
+    if(grid[r][c]==="grass" && !(occ[r]&&occ[r][c]) && !nearPool){ W.ents.push({type:"tree",c:c,r:r,w:1,d:1,v:rng()}); markOcc(occ,c,r,1,1); trees--; } }
+  W.ents.push({type:"tent",c:px-3,r:py+1,w:1,d:1,color:"#9a6f3a"}); markOcc(occ,px-3,py+1,1,1);
+  W.ents.push({type:"tent",c:px-3,r:py+3,w:1,d:1,color:"#7c592c"}); markOcc(occ,px-3,py+3,1,1);
+  W.ents.push({type:"fire",c:px-2,r:py+2,w:1,d:1}); markOcc(occ,px-2,py+2,1,1);
+  W.focus={ tile:[px+1,py+1] }; W._pool=[px+1.6,py+1.4];
+  return W;
+}
+/* --- Settlement (Helam) --- */
+function genSettlement(opts){
+  var pal=PAL.helam; var rng=mkRng(opts.seed||33); var n=20; var grid=[]; var occ=[];
+  for(var r=0;r<n;r++){ grid[r]=[]; occ[r]=[]; for(var c=0;c<n;c++) grid[r][c]="grass"; }
+  var W={ grid:grid, n:n, ents:[], actors:[], walk:[], landmarks:[], pal:pal, place:"helam", focus:{tile:[9,9]}, tower:null, primaryHero:null };
+  for(var r2=12;r2<17;r2++)for(var c2=4;c2<10;c2++){ grid[r2][c2]="field"; }
+  var rMid=9; for(var c3=3;c3<n-3;c3++) grid[rMid][c3]="road";
+  var plots=[[7,5],[9,4],[11,6],[6,7],[12,8],[8,11],[13,11]];
+  plots.forEach(function(p,i){ pushHouse(W,occ,p[0],p[1],1,1, pal.roof[i%2], i===0); });
+  W.landmarks.push(landmark("meeting","Heart of Helam","Refuge",7,5,1,1,30,"Helam, founded by Alma's church eight days into the wilderness — a place of peace before Amulon's people arrived."));
+  W.ents.push({type:"well",c:9,r:8,w:1,d:1}); markOcc(occ,9,8,1,1);
+  scatterNature(W,occ,rng,16,4);
+  scatterProps(W,occ,rng,"helam");
+  W.focus={ tile:[9,9] }; W.gate=[16,9];
+  return W;
+}
+
+/* ===================== HERO + MODS ===================== */
+function heroWorld(a){ return a.fixed? a.fixed : iso(a.c,a.r); }
+function addHero(W,o){ var a=makeActor(o.c||0,o.r||0,o.kind,mkRng(o.seed||1),W);
+  a.hero=true; a.name=o.name; a.sub=o.sub; a.pose=o.pose||"stand"; a.scale=o.scale||(o.kind==="angel"?1.8:1.55);
+  if(o.fixed){ a.fixed=o.fixed; a.idle=true; } else { a.c=o.c; a.r=o.r; a.tc=(o.tc!=null?o.tc:o.c); a.tr=(o.tr!=null?o.tr:o.r); a.idle=!o.move; }
+  if(o.primary!==false) W.primaryHero=a; W.actors.push(a); return a; }
+function setCrowd(W,opt){ W.actors.forEach(function(a){ if(a.kind!=="citizen"||a.hero) return;
+  if(opt.pose){ a.pose=opt.pose; a.idle=true; a._directed=true; } if(opt.slow) a.sp*=opt.slow;
+  if(opt.gather){ a.gather=opt.gather; a.tc=clamp(Math.round(opt.gather[0]+(a.rng()*7-3.5)),1,W.n-2); a.tr=clamp(Math.round(opt.gather[1]+(a.rng()*7-3.5)),1,W.n-2); a._directed=true; if(opt.face) a.idle=true; }
+  if(opt.toGate && W.gate){ a.tc=W.gate[0]+(a.rng()*2-1); a.tr=clamp(W.gate[1]-a.rng()*5,1,W.n-2); a.sp=0.75+a.rng()*0.3; a.gather=null; a.idle=false; a.pose="walk"; a._directed=true; } }); }
+function gatherExtra(W,tile,extra,seed){ var rng=mkRng(seed||77); for(var i=0;i<extra;i++){ var c=clamp(Math.round(tile[0]+(rng()*8-4)),1,W.n-2), r=clamp(Math.round(tile[1]+(rng()*8-4)),1,W.n-2);
+  if(tileOpen(W,c,r)){ var a=makeActor(c+0.5,r+0.5,"citizen",rng,W,tile); a.idle=true; a._directed=true; W.actors.push(a); } } }
+function faceTo(a,t){ if(!t) return; var d=iso(t[0],t[1]).x - iso(a.c,a.r).x; a.face=(d<0)?-1:1; }
+var POSE_TAGS={listen:1,watch:1,pray:1,vote:1,celebrate:1,court:1,recoil:1};
+function applyNPCActions(W,tag){ if(!tag) return; var foc=W.focus.tile; var rng=mkRng(900+W.n*7);
+  W.actors.forEach(function(a){ if(a.kind!=="citizen"||a.hero||a.merchant) return;
+    var poseTag=!!POSE_TAGS[tag]; if(a._directed && !poseTag) return;
+    var rr=rng(), pose="idle", stationary=true;
+    switch(tag){
+      case "rebuild": pose= rr<0.3?"build": rr<0.5?"carry": rr<0.64?"trade":"walk"; stationary=(pose!=="walk"); break;
+      case "labor": pose= rr<0.72?"carry":"idle"; break;
+      case "court": pose= rr<0.22?"revel": rr<0.4?"watch": rr<0.7?"idle":"walk"; stationary=(pose!=="walk"); if(pose==="watch")faceTo(a,foc); break;
+      case "listen": pose= rr<0.82?"watch":"idle"; faceTo(a,foc); break;
+      case "recoil": if(rr<0.4){pose="flee";stationary=false;a.sp=0.9+rng()*0.5;} else {pose= rr<0.8?"watch":"idle"; faceTo(a,foc);} break;
+      case "panic": pose="flee"; stationary=false; a.sp=1.0+rng()*0.7; break;
+      case "pray": pose="pray"; faceTo(a,foc); break;
+      case "vote": pose= rr<0.7?"vote":"watch"; faceTo(a,foc); break;
+      case "celebrate": pose= rr<0.34?"revel": rr<0.58?"watch": rr<0.8?"vote":"walk"; stationary=(pose!=="walk"); if(pose!=="walk")faceTo(a,foc); break;
+      case "watch": default: pose="watch"; faceTo(a,foc); break;
+    }
+    a.pose=pose; a.idle=stationary; if(stationary && !a.gather){ a.tc=a.c; a.tr=a.r; } }); }
+function towerGround(W,dx,dy){ return [W.tower.x+dx, W.tower.y+dy]; }
+
+function applyMods(W, mods){
+  mods=mods||[]; STAGE.embers=false;
+  function has(m){ return mods.indexOf(m)>=0; }
+
+  if(has("noah") && W.tower){ addHero(W,{kind:"king",name:"King Noah",pose:"enthroned",fixed:W.tower.anchor,scale:1.45,seed:1}); }
+
+  if(has("benjamin") && W.tower){ addHero(W,{kind:"king",name:"King Benjamin",pose:"enthroned",fixed:W.tower.anchor,scale:1.5,seed:2});
+    var g=towerGround(W,0,3); setCrowd(W,{gather:g,face:true,slow:1}); gatherExtra(W,g,26,3); }
+
+  if(has("abinadi") && W.tower){ addHero(W,{kind:"king",name:"King Noah",pose:"enthroned",fixed:W.tower.anchor,scale:1.4,seed:1,primary:false});
+    var t=towerGround(W,-1.4,2.2); addHero(W,{kind:"prophet",name:"Abinadi",pose:"preach",c:t[0],r:t[1],scale:1.6,seed:3});
+    W.actors.push(staticActor(W,t[0]+1,t[1]-0.2,"guard",1.05)); W.actors.push(staticActor(W,t[0]-1,t[1]+0.2,"guard",1.05));
+    setCrowd(W,{gather:towerGround(W,-1,4),face:true,slow:0.5}); }
+
+  if(has("court") && W.tower){ addHero(W,{kind:"king",name:"King Noah",pose:"enthroned",fixed:W.tower.anchor,scale:1.4,seed:1,primary:false});
+    var t2=towerGround(W,-1.3,2.2); addHero(W,{kind:"prophet",name:"Abinadi",pose:"bound",c:t2[0],r:t2[1],scale:1.6,seed:3});
+    W.actors.push(staticActor(W,t2[0]+0.9,t2[1]-0.1,"guard",1.1)); W.actors.push(staticActor(W,t2[0]-0.9,t2[1]+0.1,"guard",1.1));
+    W.actors.push(staticActor(W,t2[0]+0.2,t2[1]+1.1,"guard",1.0)); }
+
+  if(has("martyr") && W.tower){ var fp=towerGround(W,-1,2); W.ents.push({type:"fire",c:Math.round(fp[0]),r:Math.round(fp[1]),w:1,d:1,big:true});
+    W.ents.push({type:"fire",c:Math.round(fp[0]+1),r:Math.round(fp[1]+1),w:1,d:1}); STAGE.embers=true;
+    var ex=W.gate||[W.focus.tile[0],W.n-2]; var ax=ex[0]-3, ay=W.n-4;
+    addHero(W,{kind:"alma",name:"Alma",sub:"Believing Priest",pose:"flee",c:ax,r:ay,tc:ex[0],tr:W.n-2,scale:1.6,move:true,seed:8}); }
+
+  if(has("fall") && W.tower){ STAGE.embers=true;
+    var rng=mkRng(91); for(var i=0;i<5;i++){ var c=4+Math.floor(rng()*(W.n-8)), r=4+Math.floor(rng()*(W.n-8)); W.ents.push({type:"fire",c:c,r:r,w:1,d:1,big:rng()<0.4}); }
+    var conv=0; W.actors.forEach(function(a){ if(a.kind==="citizen"&&conv<8){ a.kind="lamanite"; a.sp=0.8+0.4*a.rng(); conv++; } });
+    var nf=towerGround(W,-1,3); addHero(W,{kind:"king",name:"King Noah",pose:"flee",c:nf[0],r:nf[1],tc:W.gate?W.gate[0]:nf[0],tr:W.n-2,scale:1.45,move:true,seed:1}); }
+
+  if(has("priestsFlee")){ var conv2=0; W.actors.forEach(function(a){ if(a.kind==="citizen"&&conv2<6){ a.kind="lamanite"; conv2++; } });
+    var gx=W.gate||[W.focus.tile[0],W.n-2]; addHero(W,{kind:"priest",name:"Noah's Priests",sub:"Fugitives",pose:"flee",c:gx[0]-2,r:W.n-4,tc:gx[0],tr:W.n-2,scale:1.45,move:true,seed:12});
+    for(var p=0;p<3;p++){ var a=makeActor(gx[0]-2.6+p*0.5,W.n-4-p*0.3,"priest",mkRng(20+p),W); a.tc=gx[0]; a.tr=W.n-2; a.sp=0.8; W.actors.push(a);} }
+
+  if(has("baptism") && W._pool){ var pp=W._pool;
+    addHero(W,{kind:"alma",name:"Alma",pose:"baptize",c:pp[0]-0.3,r:pp[1],scale:1.5,seed:6});
+    W.actors.push(staticActor(W,pp[0]+0.7,pp[1]+0.2,"citizen",1.1));
+    setCrowd(W,{gather:[pp[0]+2,pp[1]+2.2],face:true}); gatherExtra(W,[pp[0]+2,pp[1]+2.2],10,6); }
+
+  if(has("helamBless")){ var ft=W.focus.tile; addHero(W,{kind:"alma",name:"Alma",pose:"preach",c:ft[0],r:ft[1]-0.5,scale:1.5,seed:6});
+    setCrowd(W,{gather:[ft[0],ft[1]+2],face:true}); }
+
+  if(has("bondage")){ setCrowd(W,{slow:0.4}); var ft2=W.focus.tile;
+    W.actors.push(staticActor(W,ft2[0]-1,ft2[1]-1,"lamaguard",1.4)); W.actors.push(staticActor(W,ft2[0]+2,ft2[1]+1,"lamaguard",1.4)); W.actors.push(staticActor(W,ft2[0]+2,ft2[1]-1,"lamaguard",1.35));
+    addHero(W,{kind:"king",name:"King Limhi",pose:"burden",c:ft2[0],r:ft2[1]+0.4,scale:1.45,seed:14}); }
+
+  if(has("amulon")){ setCrowd(W,{pose:"kneel",gather:W.focus.tile}); var ft3=W.focus.tile;
+    W.actors.push(staticActor(W,ft3[0]-1.5,ft3[1]-1.2,"lamaguard",1.35)); W.actors.push(staticActor(W,ft3[0]+1.6,ft3[1]+1.0,"lamaguard",1.35));
+    addHero(W,{kind:"amulon",name:"Amulon",pose:"overseer",c:ft3[0]+0.4,r:ft3[1]-1.0,scale:1.5,seed:16}); }
+
+  if(has("scouts")){ setCrowd(W,{slow:0.45}); var gx2=W.gate||W.focus.tile;
+    W.actors.push(staticActor(W,gx2[0]-2.4,gx2[1]+0.4,"lamaguard",1.3)); W.actors.push(staticActor(W,gx2[0]+2.4,gx2[1]+0.6,"lamaguard",1.3));
+    addHero(W,{kind:"scout",name:"Ammon",pose:"stand",c:gx2[0]-0.4,r:gx2[1]-1.6,scale:1.55,seed:18});
+    addHero(W,{kind:"king",name:"King Limhi",pose:"stand",c:gx2[0]+1.0,r:gx2[1]-1.2,scale:1.4,seed:14,primary:false});
+    for(var sc=0;sc<3;sc++){ var a=makeActor(gx2[0]-1.4+sc*0.5,gx2[1]-2.2-sc*0.3,"scout",mkRng(30+sc),W); a.idle=true; W.actors.push(a);} }
+
+  if(has("escape")){ setCrowd(W,{toGate:true}); var gx3=W.gate||[W.focus.tile[0],W.n-2];
+    addHero(W,{kind:"alma",name:"The Faithful",sub:"",pose:"walk",c:gx3[0],r:gx3[1]-1,tc:gx3[0],tr:W.n-1,scale:1.5,move:true,seed:22});
+    // slumped guards
+    W.actors.push((function(){var g=staticActor(W,gx3[0]-1.6,gx3[1]-0.6,"lamaguard",1.1); g.pose="fallen"; return g;})());
+    W.actors.push((function(){var g=staticActor(W,gx3[0]+1.6,gx3[1]-0.4,"lamaguard",1.1); g.pose="fallen"; return g;})()); }
+
+  if(has("gather")){ var ft4=W.focus.tile; setCrowd(W,{gather:[ft4[0],ft4[1]+1]}); gatherExtra(W,[ft4[0],ft4[1]+1],10,40);
+    if(W.tower) addHero(W,{kind:"king",name:"King Mosiah",pose:"enthroned",fixed:W.tower.anchor,scale:1.45,seed:24}); }
+
+  if(has("gatherHuge")){ var ft5=W.focus.tile; setCrowd(W,{gather:[ft5[0],ft5[1]+1]}); gatherExtra(W,[ft5[0],ft5[1]+1],28,41);
+    if(W.tower && !W.primaryHero) addHero(W,{kind:"king",name:"King Mosiah",pose:"enthroned",fixed:W.tower.anchor,scale:1.45,seed:24}); }
+
+  if(has("angel") && W.tower){ var ap=towerGround(W,-1,2.5);
+    addHero(W,{kind:"angel",name:"An Angel of the Lord",pose:"angel",c:ap[0],r:ap[1],scale:1.85,seed:9});
+    for(var f=0;f<4;f++){ var fa=makeActor(ap[0]+0.6+f*0.6,ap[1]+1.4+ (f%2)*0.4,"young",mkRng(50+f),W); fa.pose="fallen"; fa.idle=true; fa.scale=1.15; W.actors.push(fa);} 
+    setCrowd(W,{gather:towerGround(W,-1,4),face:true}); }
+
+  if(has("records")){ var te=W.temple||W.focus.tile; addHero(W,{kind:"king",name:"King Mosiah",pose:"artifact",c:te[0]+1.5,r:te[1]+2.2,scale:1.5,seed:24});
+    setCrowd(W,{gather:[te[0]+1.5,te[1]+3.5],face:true}); }
+}
+
+/* ===================== ACTOR UPDATE ===================== */
+function pickTarget(a){ var W=a.g;
+  if(a.gather){ a.tc=clamp(Math.round(a.gather[0]+(a.rng()*7-3.5)),1,W.n-2); a.tr=clamp(Math.round(a.gather[1]+(a.rng()*7-3.5)),1,W.n-2); if(!tileOpen(W,a.tc,a.tr)){a.tc=a.c;a.tr=a.r;} return; }
+  if(W.walk.length){ var p=W.walk[Math.floor(a.rng()*W.walk.length)]; a.tc=p[0]+0.5; a.tr=p[1]+0.5; } }
+function updateActors(dt){ var W=world;
+  for(var i=0;i<W.actors.length;i++){ var a=W.actors[i];
+    if(a.fixed || a.idle || a.pose==="fallen" || a.pose==="kneel"){ a.phase+= dt*0.002; continue; }
+    if(a.wait>0){ a.wait-=dt; a.phase+=dt*0.001; continue; }
+    var dc=a.tc-a.c, dr=a.tr-a.r; var dist=Math.hypot(dc,dr);
+    if(dist<0.08){ if(a.hero && a.pose==="walk"){ a.wait=600; } else { a.wait=400+a.rng()*2200; } pickTarget(a); continue; }
+    var step=a.sp*dt/1000; if(step>dist) step=dist; a.c+=dc/dist*step; a.r+=dr/dist*step;
+    a.face=((dc-dr)<0)?-1:1; a.phase+=dt*0.012*(0.6+a.sp); } }
+function buildWalkList(W){ W.walk=[]; var blocked=[]; for(var r=0;r<W.n;r++){blocked[r]=[];}
+  W.ents.forEach(function(e){ if(["tree","rock","house","temple","tower","wall","stall","well","tent","fire"].indexOf(e.type)>=0){ for(var i=0;i<(e.w||1);i++)for(var j=0;j<(e.d||1);j++){ var cc=e.c+i,rr=e.r+j; if(blocked[rr]) blocked[rr][cc]=true; } } });
+  for(var r2=0;r2<W.n;r2++)for(var c2=0;c2<W.n;c2++){ if(tileOpen(W,c2,r2) && !(blocked[r2]&&blocked[r2][c2])) W.walk.push([c2,r2]); } }
+
+/* ===================== DRAW PRIMITIVES ===================== */
+function poly(pts,fill,stroke,sw){ ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.closePath(); if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw||1;ctx.stroke();} }
+function drawTile(c,r,type){ var p=world.pal.tiles[type]||"#666"; var A=iso(c,r),B=iso(c+1,r),C=iso(c+1,r+1),D=iso(c,r+1);
+  var v=((c*73856+r*19349)%100)/100; var f= v<0.5? -0.04 : 0.04; poly([A,B,C,D], shade(p,f), shade(p,-0.16), 1);
+  if(type==="water"){ ctx.save(); ctx.globalAlpha=0.5; var off=(now()/700)%1; ctx.strokeStyle="rgba(180,230,225,0.4)"; ctx.lineWidth=1.5; ctx.beginPath();
+    var y=lerp(A.y,C.y,0.4+0.15*Math.sin((c+r)+off*6.28)); ctx.moveTo(D.x+8,y); ctx.lineTo(B.x-8,y); ctx.stroke(); ctx.restore(); }
+  if(type==="field"){ ctx.strokeStyle="rgba(60,45,20,0.35)"; ctx.lineWidth=1; for(var k=1;k<4;k++){ var t=k/4; ctx.beginPath(); ctx.moveTo(lerp(A.x,D.x,t),lerp(A.y,D.y,t)); ctx.lineTo(lerp(B.x,C.x,t),lerp(B.y,C.y,t)); ctx.stroke(); } } }
+function box(c,r,w,d,h,top,left,right){ var A=iso(c,r),B=iso(c+w,r),C=iso(c+w,r+d),D=iso(c,r+d);
+  var At={x:A.x,y:A.y-h},Bt={x:B.x,y:B.y-h},Ct={x:C.x,y:C.y-h},Dt={x:D.x,y:D.y-h};
+  poly([D,C,Ct,Dt], left, shade(left,-0.25),1); poly([B,C,Ct,Bt], right, shade(right,-0.25),1); poly([At,Bt,Ct,Dt], top, shade(top,-0.18),1);
+  return {At:At,Bt:Bt,Ct:Ct,Dt:Dt}; }
+function roof(t,roofH,cL,cR){ var cx=(t.At.x+t.Ct.x)/2, cy=(t.At.y+t.Ct.y)/2; var apex={x:cx,y:cy-roofH};
+  poly([t.Dt,t.Ct,apex], cL, shade(cL,-0.2),1); poly([t.Bt,t.Ct,apex], cR, shade(cR,-0.25),1); }
+function groundShadow(c,r,w,d){ var p=iso(c+w/2,r+d/2); ctx.save(); ctx.globalAlpha=0.22; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(p.x,p.y, 22*w,12*d,0,0,6.28); ctx.fill(); ctx.restore(); }
+
+/* ===================== DRAW ENTITIES ===================== */
+function drawEntity(e){ var pal=world.pal, b=pal.bldg;
+  if(e.type==="house"){ groundShadow(e.c,e.r,e.w,e.d); var t=box(e.c,e.r,e.w,e.d,e.h,b.top,b.left,b.right); roof(t, e.big?22:16, shade(e.roof,0.06), shade(e.roof,-0.12));
+    var dr=iso(e.c+e.w/2,e.r+e.d); ctx.fillStyle="rgba(40,28,16,0.8)"; ctx.fillRect(dr.x-4,dr.y-e.h+2,8,e.h-4); }
+  else if(e.type==="temple"){ groundShadow(e.c,e.r,e.w,e.d); var t2=box(e.c,e.r,e.w,e.d,e.h, shade(b.top,0.05), shade(b.left,0.03), b.right);
+    for(var i=0;i<e.w;i++){ var cc=e.c+i+0.18; box(cc,e.r+e.d-0.32,0.32,0.32,e.h+16, shade(b.top,0.1), shade(b.left,0.05), shade(b.right,-0.02)); }
+    box(e.c,e.r,e.w,0.32,e.h+18, b.top,b.left,b.right); roof(t2, 10, shade(pal.roof[0],0.05), shade(pal.roof[1],-0.1)); }
+  else if(e.type==="tower"){ groundShadow(e.c,e.r,1,1); var levels=4, lh=e.h/levels;
+    for(var L=0;L<levels;L++){ var inset=L*0.07; box(e.c+inset,e.r+inset,1-inset*2,1-inset*2, lh*(L+1), shade(b.top,0.04), shade(b.left,0.0), shade(b.right,-0.04)); }
+    var pc=e.c+0.12, prr=e.r+0.12, pw=0.76; var pt=box(pc,prr,pw,pw, e.h, shade(b.top,0.08), shade(b.left,0.02), shade(b.right,-0.02));
+    ctx.fillStyle=shade(b.top,0.12); for(var k=0;k<3;k++){ var fx=lerp(pt.Dt.x,pt.Ct.x,(k+0.5)/3); var fy=lerp(pt.Dt.y,pt.Ct.y,(k+0.5)/3); ctx.fillRect(fx-3,fy-8,6,8); }
+    var ap=iso(e.c+0.5,e.r+0.5); ctx.strokeStyle="#3a2c18"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ap.x,ap.y-e.h); ctx.lineTo(ap.x,ap.y-e.h-22); ctx.stroke();
+    ctx.fillStyle= e.style==="zarahemla"?"#6ea0e0":"#c9a227"; ctx.beginPath(); ctx.moveTo(ap.x,ap.y-e.h-22); ctx.lineTo(ap.x+14,ap.y-e.h-18); ctx.lineTo(ap.x,ap.y-e.h-14); ctx.fill(); }
+  else if(e.type==="wall"){ box(e.c+0.05,e.r+0.05,0.9,0.9,18, shade(b.top,-0.02), shade(b.left,-0.06), shade(b.right,-0.1)); }
+  else if(e.type==="gate"){ box(e.c+0.05,e.r+0.05,0.9,0.4,26, b.top,b.left,b.right); box(e.c+0.05,e.r+0.55,0.9,0.4,26, b.top,b.left,b.right);
+    var g=iso(e.c+0.5,e.r+0.5); ctx.fillStyle="rgba(30,20,12,0.85)"; ctx.fillRect(g.x-6,g.y-24,12,24); }
+  else if(e.type==="stall"){ groundShadow(e.c,e.r,1,1); box(e.c+0.2,e.r+0.2,0.6,0.6,10,"#caa06a","#a07f50","#7d6238");
+    var s=iso(e.c+0.5,e.r+0.5); poly([{x:s.x-18,y:s.y-16},{x:s.x,y:s.y-22},{x:s.x+18,y:s.y-16},{x:s.x,y:s.y-10}], e.color, shade(e.color,-0.2),1); }
+  else if(e.type==="well"){ groundShadow(e.c,e.r,1,1); box(e.c+0.3,e.r+0.3,0.4,0.4,8,"#9aa0ad","#7e8490","#666b76");
+    var w=iso(e.c+0.5,e.r+0.5); ctx.strokeStyle="#5a4630"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(w.x-7,w.y-8); ctx.lineTo(w.x-7,w.y-22); ctx.moveTo(w.x+7,w.y-8); ctx.lineTo(w.x+7,w.y-22); ctx.moveTo(w.x-9,w.y-22); ctx.lineTo(w.x+9,w.y-22); ctx.stroke(); }
+  else if(e.type==="tent"){ groundShadow(e.c,e.r,1,1); var s2=iso(e.c+0.5,e.r+0.6);
+    poly([{x:s2.x-16,y:s2.y},{x:s2.x,y:s2.y-26},{x:s2.x+16,y:s2.y}], e.color, shade(e.color,-0.2),1);
+    poly([{x:s2.x,y:s2.y-26},{x:s2.x+16,y:s2.y},{x:s2.x+8,y:s2.y+2}], shade(e.color,-0.12)); }
+  else if(e.type==="tree"){ groundShadow(e.c,e.r,1,1); var p=iso(e.c+0.5,e.r+0.5); var th=18+(e.v||0)*10;
+    ctx.fillStyle="#6a4a2c"; ctx.fillRect(p.x-2.5,p.y-th*0.5,5,th*0.5);
+    ctx.fillStyle=shade("#2f5526",0.0); ctx.beginPath(); ctx.arc(p.x,p.y-th*0.55,13,0,6.28); ctx.fill();
+    ctx.fillStyle=shade("#3c6b2f",(e.v||0)*0.2-0.05); ctx.beginPath(); ctx.arc(p.x-4,p.y-th*0.7,10,0,6.28); ctx.arc(p.x+6,p.y-th*0.62,9,0,6.28); ctx.fill(); }
+  else if(e.type==="rock"){ var p2=iso(e.c+0.5,e.r+0.5); ctx.fillStyle="#6b6f7a"; ctx.beginPath(); ctx.ellipse(p2.x,p2.y-4,11,8,0,0,6.28); ctx.fill(); ctx.fillStyle="rgba(131,135,145,0.45)"; ctx.beginPath(); ctx.ellipse(p2.x-3,p2.y-7,6,4,0,0,6.28); ctx.fill(); }
+  else if(e.type==="banner"){ var p3=iso(e.c+0.5,e.r+0.5); ctx.strokeStyle="#3a2c18"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(p3.x,p3.y); ctx.lineTo(p3.x,p3.y-30); ctx.stroke();
+    ctx.fillStyle=e.color; ctx.beginPath(); ctx.moveTo(p3.x,p3.y-30); ctx.lineTo(p3.x+13,p3.y-26); ctx.lineTo(p3.x,p3.y-20); ctx.fill(); }
+  else if(e.type==="torch"){ var p4=iso(e.c+0.5,e.r+0.5); ctx.strokeStyle="#4a3620"; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(p4.x,p4.y); ctx.lineTo(p4.x,p4.y-18); ctx.stroke(); drawFlame(p4.x,p4.y-18,0.7); }
+  else if(e.type==="fire"){ var p5=iso(e.c+0.5,e.r+0.5); ctx.fillStyle="#3a2a18"; ctx.fillRect(p5.x-8,p5.y-3,16,4); drawFlame(p5.x,p5.y-2, e.big?2.0:1.3); }
+  else if(e.type==="bush"){ var pb=iso(e.c+0.5,e.r+0.5); var bs=10+(e.v||0)*5; ctx.fillStyle=shade("#3c6b2f",(e.v||0)*0.12-0.04); ctx.beginPath(); ctx.arc(pb.x-bs*0.4,pb.y-bs*0.4,bs*0.6,0,6.28); ctx.arc(pb.x+bs*0.4,pb.y-bs*0.4,bs*0.6,0,6.28); ctx.arc(pb.x,pb.y-bs*0.7,bs*0.66,0,6.28); ctx.fill(); ctx.fillStyle="rgba(150,180,90,0.4)"; ctx.beginPath(); ctx.arc(pb.x,pb.y-bs*0.85,bs*0.3,0,6.28); ctx.fill(); }
+  else if(e.type==="flowers"){ var pf=iso(e.c+0.5,e.r+0.5); for(var fi=0;fi<5;fi++){ var ang=fi*1.7+(e.c+e.r); var fx=pf.x+Math.cos(ang)*7, fy=pf.y-4+Math.sin(ang)*4; ctx.fillStyle="#3c6b2f"; ctx.fillRect(fx-0.6,fy,1.2,5); ctx.fillStyle=e.col||"#d98fb0"; ctx.beginPath(); ctx.arc(fx,fy,2.1,0,6.28); ctx.fill(); } }
+  else if(e.type==="crate"){ groundShadow(e.c,e.r,1,1); box(e.c+0.25,e.r+0.25,0.5,0.5,12,"#a07f50","#86683f","#6a5230"); var cb=iso(e.c+0.5,e.r+0.32); ctx.strokeStyle="rgba(50,36,20,0.5)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cb.x-7,cb.y-6); ctx.lineTo(cb.x+7,cb.y-6); ctx.stroke(); }
+  else if(e.type==="pot"){ var pp=iso(e.c+0.5,e.r+0.5); ctx.save(); ctx.globalAlpha=0.2; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(pp.x,pp.y,7,3,0,0,6.28); ctx.fill(); ctx.restore(); ctx.fillStyle="#9a6f3a"; ctx.beginPath(); ctx.ellipse(pp.x,pp.y-6,6,7,0,0,6.28); ctx.fill(); ctx.fillStyle=shade("#9a6f3a",0.12); ctx.beginPath(); ctx.ellipse(pp.x-1.5,pp.y-8,2.4,3,0,0,6.28); ctx.fill(); ctx.fillStyle=shade("#9a6f3a",-0.2); ctx.beginPath(); ctx.ellipse(pp.x,pp.y-12,4,1.6,0,0,6.28); ctx.fill(); }
+  else if(e.type==="sheep"){ var ps=iso(e.c+0.5,e.r+0.5); ctx.save(); ctx.globalAlpha=0.2; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(ps.x,ps.y,10,4,0,0,6.28); ctx.fill(); ctx.restore(); ctx.fillStyle="#e8e4d8"; ctx.beginPath(); ctx.ellipse(ps.x,ps.y-7,9,6,0,0,6.28); ctx.fill(); ctx.fillStyle="#cfc9ba"; ctx.beginPath(); ctx.arc(ps.x-7,ps.y-9,3.2,0,6.28); ctx.fill(); ctx.fillStyle="#5a4a3a"; ctx.beginPath(); ctx.ellipse(ps.x-9,ps.y-9,2.6,3.2,0,0,6.28); ctx.fill(); ctx.fillStyle="#3a2c1c"; ctx.fillRect(ps.x-2,ps.y-2,1.4,4); ctx.fillRect(ps.x+5,ps.y-2,1.4,4); }
+  else if(e.type==="cart"){ groundShadow(e.c,e.r,1,1); box(e.c+0.15,e.r+0.3,0.7,0.4,9,"#8a6a40","#6f5230","#543e22"); var pcrt=iso(e.c+0.5,e.r+0.7); ctx.fillStyle="#3a2c1c"; ctx.beginPath(); ctx.arc(pcrt.x-9,pcrt.y+2,5,0,6.28); ctx.arc(pcrt.x+9,pcrt.y+2,5,0,6.28); ctx.fill(); ctx.fillStyle="#6a5230"; ctx.beginPath(); ctx.arc(pcrt.x-9,pcrt.y+2,2,0,6.28); ctx.arc(pcrt.x+9,pcrt.y+2,2,0,6.28); ctx.fill(); ctx.fillStyle="#b59a6a"; ctx.fillRect(pcrt.x-10,pcrt.y-16,20,5); } }
+function drawFlame(x,y,scale){ var t=now()/120; var fl=1+0.18*Math.sin(t+x)+0.1*Math.sin(t*2.3);
+  ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle="#e0883c"; ctx.beginPath(); ctx.arc(x,y-5*scale,16*scale,0,6.28); ctx.fill();
+  ctx.globalAlpha=0.92; ctx.fillStyle="#e0883c"; ctx.beginPath(); ctx.ellipse(x,y-6*scale*fl,5*scale,9*scale*fl,0,0,6.28); ctx.fill();
+  ctx.fillStyle="#f4d04a"; ctx.beginPath(); ctx.ellipse(x,y-5*scale*fl,2.6*scale,5.5*scale*fl,0,0,6.28); ctx.fill(); ctx.restore(); }
+
+/* ===================== PEOPLE ===================== */
+var KINDS={
+  citizen:{robe:["#8a6f4a","#6f7d8f","#9a8350","#7a6b8f","#5f7d6a","#a07f50"], skin:"#caa07a", hair:"#3a2a1a"},
+  guard:{robe:["#5a5750"], skin:"#caa07a", hair:"#2a2218", helmet:"#9aa0ad", spear:true},
+  lamaguard:{robe:["#7a3b2f"], skin:"#9a6f4a", hair:"#1f140e", band:"#caa04a", spear:true},
+  lamanite:{robe:["#7a3b2f","#8a4a32"], skin:"#9a6f4a", hair:"#1f140e", band:"#caa04a"},
+  king:{robe:["#5b3a7a"], skin:"#caa07a", hair:"#2a2218", crown:true, trim:"#e7c64a"},
+  prophet:{robe:["#e2ddcc"], skin:"#c49a72", hair:"#cfcabd", beard:true, staff:true},
+  alma:{robe:["#cdd6e0"], skin:"#c49a72", hair:"#5a4636", beard:true},
+  amulon:{robe:["#6a2f3a"], skin:"#b08a5e", hair:"#241712", trim:"#caa04a"},
+  scout:{robe:["#3a6f8f","#4f7d5f"], skin:"#caa07a", hair:"#2a2218", pack:true},
+  priest:{robe:["#b59a3a"], skin:"#caa07a", hair:"#2a2218", sash:"#e7c64a"},
+  young:{robe:["#7a6b8f","#6f7d8f"], skin:"#caa07a", hair:"#2a2218"},
+  angel:{robe:["#f5efd2"], skin:"#efe0ba", hair:"#f4ead0", glow:true, wings:true}
+};
+function spotlight(x,y,s,white){ ctx.save(); ctx.globalAlpha=0.55;
+  var col1= white? "rgba(255,250,225,0.85)":"rgba(255,214,120,0.7)";
+  var rg=ctx.createRadialGradient(x,y,2,x,y,34*s); rg.addColorStop(0,col1); rg.addColorStop(1,"rgba(255,214,120,0)");
+  ctx.fillStyle=rg; ctx.beginPath(); ctx.ellipse(x,y,30*s,13*s,0,0,6.28); ctx.fill();
+  // light shaft
+  ctx.globalAlpha=0.16; var sg=ctx.createLinearGradient(x,y-60*s,x,y); sg.addColorStop(0,"rgba(255,240,200,0)"); sg.addColorStop(1, white?"rgba(255,250,225,0.6)":"rgba(255,222,150,0.5)");
+  ctx.fillStyle=sg; poly([{x:x-7*s,y:y-58*s},{x:x+7*s,y:y-58*s},{x:x+16*s,y:y},{x:x-16*s,y:y}]); ctx.restore(); }
+function heroAura(x,y,s,angel,primary){ var t=now()/700; ctx.save();
+  // bright ground pool
+  ctx.globalAlpha=0.78; var rg=ctx.createRadialGradient(x,y,2,x,y,48*s);
+  rg.addColorStop(0, angel?"rgba(255,251,232,0.98)":"rgba(255,226,152,0.9)");
+  rg.addColorStop(0.5, angel?"rgba(255,245,205,0.4)":"rgba(255,212,124,0.34)");
+  rg.addColorStop(1,"rgba(255,212,124,0)");
+  ctx.fillStyle=rg; ctx.beginPath(); ctx.ellipse(x,y,42*s,18*s,0,0,6.28); ctx.fill();
+  // pulsing ground ring
+  var pr=1+0.10*Math.sin(t*3); ctx.globalAlpha=0.45+0.22*(0.5+0.5*Math.sin(t*3)); ctx.lineWidth=2*s;
+  ctx.strokeStyle= angel?"#fff2bf":"#e7c64a"; ctx.beginPath(); ctx.ellipse(x,y,31*s*pr,12.5*s*pr,0,0,6.28); ctx.stroke();
+  if(primary){ // tall light shaft (primary only)
+    ctx.globalAlpha=0.2; var sg=ctx.createLinearGradient(x,y-90*s,x,y); sg.addColorStop(0,"rgba(255,245,208,0)"); sg.addColorStop(1, angel?"rgba(255,251,232,0.72)":"rgba(255,226,152,0.62)");
+    ctx.fillStyle=sg; poly([{x:x-9*s,y:y-88*s},{x:x+9*s,y:y-88*s},{x:x+21*s,y:y},{x:x-21*s,y:y}]); }
+  // upper-body halo
+  ctx.globalAlpha=0.5; var hg=ctx.createRadialGradient(x,y-24*s,2,x,y-24*s,28*s);
+  hg.addColorStop(0, angel?"rgba(255,251,232,0.85)":"rgba(255,234,172,0.58)"); hg.addColorStop(1,"rgba(255,234,172,0)");
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(x,y-24*s,28*s,0,6.28); ctx.fill();
+  ctx.restore(); }
+function drawLimb(x0,y0,x1,y1,w,col,hand,handR,skin){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap="round";
+  var mx=(x0+x1)/2+(y1-y0)*0.06, my=(y0+y1)/2; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.quadraticCurveTo(mx,my,x1,y1); ctx.stroke();
+  if(hand){ ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(x1,y1,handR,0,6.28); ctx.fill(); } }
+function armPose(pose,h,ux,shY,hipY,ph,K){ var step=Math.sin(ph); var H={L:{x:ux-0.13*h,y:hipY+0.03*h},R:{x:ux+0.13*h,y:hipY+0.03*h},prop:null};
+  function P(lx,ly,rx,ry){H.L={x:lx,y:ly};H.R={x:rx,y:ry};}
+  switch(pose){
+    case "walk": P(ux-0.12*h+step*0.07*h,hipY, ux+0.12*h-step*0.07*h,hipY); break;
+    case "run": case "flee": case "panic": P(ux-0.14*h+step*0.11*h,hipY-0.05*h, ux+0.15*h-step*0.11*h,hipY-0.07*h); break;
+    case "preach": case "angel": P(ux-0.16*h,hipY-0.02*h, ux+0.17*h,shY-0.30*h); break;
+    case "vote": P(ux-0.12*h,hipY+0.02*h, ux+0.05*h,shY-0.36*h); break;
+    case "revel": P(ux-0.18*h,shY-0.22*h, ux+0.18*h,shY-0.24*h); break;
+    case "enthroned": P(ux-0.19*h,hipY-0.02*h, ux+0.19*h,hipY-0.02*h); break;
+    case "overseer": P(ux-0.12*h,hipY, ux+0.24*h,shY+0.05*h); break;
+    case "bound": P(ux-0.03*h,hipY+0.05*h, ux+0.03*h,hipY+0.05*h); H.prop=function(){ctx.strokeStyle="#caa86a";ctx.lineWidth=Math.max(1.4,0.03*h);ctx.beginPath();ctx.arc(ux,hipY+0.05*h,0.06*h,0,6.28);ctx.stroke();}; break;
+    case "baptize": P(ux+0.10*h,shY+0.22*h, ux+0.21*h,shY+0.15*h); break;
+    case "pray": P(ux-0.02*h,shY+0.11*h, ux+0.02*h,shY+0.11*h); break;
+    case "carry": case "burden": P(ux-0.10*h,shY-0.02*h, ux+0.10*h,shY-0.02*h); H.prop=function(){ctx.fillStyle="#6a4f30";ctx.fillRect(ux-0.13*h,shY-0.15*h,0.26*h,0.13*h);ctx.strokeStyle="#3e2c18";ctx.lineWidth=1;ctx.strokeRect(ux-0.13*h,shY-0.15*h,0.26*h,0.13*h);ctx.strokeStyle="#4e3a22";ctx.beginPath();ctx.moveTo(ux-0.06*h,shY-0.15*h);ctx.lineTo(ux-0.06*h,shY-0.02*h);ctx.moveTo(ux+0.06*h,shY-0.15*h);ctx.lineTo(ux+0.06*h,shY-0.02*h);ctx.stroke();}; break;
+    case "artifact": P(ux-0.09*h,shY+0.15*h, ux+0.09*h,shY+0.15*h); H.prop=function(){ctx.save();ctx.globalAlpha=0.6;var g=ctx.createRadialGradient(ux,shY+0.13*h,1,ux,shY+0.13*h,0.17*h);g.addColorStop(0,"rgba(255,236,150,0.95)");g.addColorStop(1,"rgba(255,236,150,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(ux,shY+0.13*h,0.17*h,0,6.28);ctx.fill();ctx.restore();ctx.fillStyle="#e7c64a";ctx.fillRect(ux-0.07*h,shY+0.08*h,0.14*h,0.1*h);ctx.strokeStyle="#8a6f1f";ctx.lineWidth=1;ctx.strokeRect(ux-0.07*h,shY+0.08*h,0.14*h,0.1*h);}; break;
+    case "build": var bobv=0.05*h*Math.max(0,Math.sin(ph*3)); P(ux-0.12*h,hipY, ux+0.13*h,shY-0.14*h-bobv); H.prop=function(){ctx.strokeStyle="#6a4f30";ctx.lineWidth=Math.max(1.6,0.035*h);ctx.beginPath();ctx.moveTo(ux+0.13*h,shY-0.14*h-bobv);ctx.lineTo(ux+0.23*h,shY-0.26*h-bobv);ctx.stroke();ctx.fillStyle="#8a8f98";ctx.fillRect(ux+0.20*h,shY-0.33*h-bobv,0.1*h,0.07*h);}; break;
+    case "trade": var g2=0.02*h*Math.sin(ph*2); P(ux-0.19*h,shY+0.10*h+g2, ux+0.19*h,shY+0.06*h-g2); H.prop=function(){ctx.fillStyle="#9a6f3a";ctx.beginPath();ctx.ellipse(ux-0.2*h,shY+0.13*h+g2,0.05*h,0.06*h,0,0,6.28);ctx.fill();}; break;
+    case "watch": case "idle": case "stand": default: P(ux-0.13*h,hipY+0.03*h, ux+0.13*h,hipY+0.03*h); break;
+  } return H; }
+function drawHumanoid(px,py,h,o){ o=o||{}; var K=o.K||KINDS.citizen; var pose=o.pose||"idle"; var ph=o.phase||0; var dir=o.dir||"front";
+  var robe=o.robe||(K.robe&&K.robe[0])||"#8a6f4a"; var robeD=shade(robe,-0.16), robeL=shade(robe,0.10);
+  var skin=K.skin||"#caa07a", skinD=shade(skin,-0.16), hair=K.hair; var back=(dir==="back");
+  var walking=(pose==="walk"||pose==="run"||pose==="flee"||pose==="panic"); var run=(pose==="run"||pose==="flee"||pose==="panic");
+  var step=walking?Math.sin(ph):0; var kneel=(pose==="kneel"||pose==="pray"); var sit=(pose==="enthroned");
+  var bowFwd=(pose==="carry"||pose==="burden"||pose==="pray")?0.045*h:0; var lean=(run?0.05*h:0)+(o.lean||0);
+  var feet=py, headR=0.086*h, hipY, shoulderY, headCY;
+  if(kneel){ hipY=feet-0.30*h; shoulderY=feet-0.58*h; headCY=feet-0.71*h; }
+  else if(sit){ hipY=feet-0.20*h; shoulderY=feet-0.60*h; headCY=feet-0.78*h; }
+  else { hipY=feet-0.46*h; shoulderY=feet-0.74*h; headCY=feet-0.90*h; }
+  var ux=px+lean+bowFwd*0.6, halfSh=0.155*h, halfHip=0.125*h, hemHalf=0.17*h, hemY=feet-0.02*h;
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  if(K.wings){ ctx.save(); ctx.globalAlpha=0.92; var wy=shoulderY+0.04*h, wsp=0.34*h;
+    [-1,1].forEach(function(sgnw){ var g=ctx.createLinearGradient(ux,wy,ux+sgnw*wsp,wy); g.addColorStop(0,"rgba(255,253,240,0.95)"); g.addColorStop(1,"rgba(245,238,210,0.55)"); ctx.fillStyle=g;
+      ctx.beginPath(); ctx.moveTo(ux,wy); ctx.quadraticCurveTo(ux+sgnw*wsp,wy-0.34*h, ux+sgnw*0.5*wsp,wy+0.26*h); ctx.quadraticCurveTo(ux+sgnw*0.18*wsp,wy+0.04*h, ux,wy); ctx.fill();
+      ctx.strokeStyle="rgba(220,210,170,0.6)"; ctx.lineWidth=1; ctx.stroke(); }); ctx.restore(); }
+  // legs / lower
+  if(kneel){ ctx.strokeStyle=robeD; ctx.lineWidth=0.11*h; ctx.beginPath(); ctx.moveTo(px-0.05*h,hipY); ctx.lineTo(px-0.13*h,feet-0.02*h); ctx.lineTo(px+0.05*h,feet-0.02*h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+0.07*h,hipY); ctx.lineTo(px+0.13*h,feet-0.13*h); ctx.lineTo(px+0.11*h,feet-0.02*h); ctx.stroke(); }
+  else if(sit){ ctx.strokeStyle=robeD; ctx.lineWidth=0.12*h; ctx.beginPath(); ctx.moveTo(px-0.06*h,hipY); ctx.lineTo(px-0.17*h,hipY+0.01*h); ctx.lineTo(px-0.17*h,feet-0.02*h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+0.06*h,hipY); ctx.lineTo(px-0.02*h,hipY+0.01*h); ctx.lineTo(px-0.02*h,feet-0.02*h); ctx.stroke(); }
+  else { var swL=walking?step*0.10*h:0, swR=walking?-step*0.10*h:0; ctx.strokeStyle="#5a4632"; ctx.lineWidth=0.095*h;
+    ctx.beginPath(); ctx.moveTo(px-0.05*h,hipY+0.02*h); ctx.lineTo(px-0.05*h+swL,feet-0.01*h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+0.05*h,hipY+0.02*h); ctx.lineTo(px+0.05*h+swR,feet-0.01*h); ctx.stroke();
+    ctx.fillStyle="#37291a"; ctx.beginPath(); ctx.ellipse(px-0.05*h+swL,feet,0.052*h,0.022*h,0,0,6.28); ctx.fill(); ctx.beginPath(); ctx.ellipse(px+0.05*h+swR,feet,0.052*h,0.022*h,0,0,6.28); ctx.fill(); }
+  // gown / torso
+  ctx.beginPath(); ctx.moveTo(ux-halfSh,shoulderY); ctx.lineTo(ux+halfSh,shoulderY); ctx.lineTo(px+halfHip,hipY); ctx.lineTo(px+hemHalf,hemY); ctx.lineTo(px-hemHalf,hemY); ctx.lineTo(px-halfHip,hipY); ctx.closePath();
+  var grad=ctx.createLinearGradient(ux-halfSh,0,ux+halfSh,0); grad.addColorStop(0,robeL); grad.addColorStop(0.55,robe); grad.addColorStop(1,robeD);
+  ctx.fillStyle=grad; ctx.fill(); ctx.strokeStyle=shade(robe,-0.28); ctx.lineWidth=Math.max(1,0.012*h); ctx.stroke();
+  ctx.strokeStyle=shade(robe,-0.18); ctx.lineWidth=Math.max(0.8,0.009*h); ctx.beginPath(); ctx.moveTo(px,hipY+0.02*h); ctx.lineTo(px,hemY-0.01*h); ctx.stroke();
+  if(K.trim){ ctx.strokeStyle=K.trim; ctx.lineWidth=Math.max(1.2,0.022*h); ctx.beginPath(); ctx.moveTo(ux-halfSh*0.9,hipY-0.01*h); ctx.lineTo(ux+halfSh*0.9,hipY-0.01*h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(px-hemHalf*0.85,hemY-0.012*h); ctx.lineTo(px+hemHalf*0.85,hemY-0.012*h); ctx.stroke(); }
+  else { ctx.strokeStyle=shade(robe,-0.3); ctx.lineWidth=Math.max(1,0.013*h); ctx.beginPath(); ctx.moveTo(ux-halfSh*0.8,hipY); ctx.lineTo(ux+halfSh*0.8,hipY); ctx.stroke(); }
+  if(K.sash){ ctx.strokeStyle=K.sash; ctx.lineWidth=Math.max(1.6,0.032*h); ctx.beginPath(); ctx.moveTo(ux-halfSh*0.85,shoulderY+0.04*h); ctx.lineTo(px+halfHip*0.8,hipY+0.05*h); ctx.stroke(); }
+  // arms
+  var sLx=ux-halfSh*0.92, sRx=ux+halfSh*0.92, sY=shoulderY+0.02*h, armW=0.062*h, sleeve=shade(robe,-0.05), handR=0.044*h;
+  var Hn=armPose(pose,h,ux,shoulderY,hipY,ph,K);
+  drawLimb(sLx,sY,Hn.L.x,Hn.L.y,armW,sleeve,!back,handR,skin); drawLimb(sRx,sY,Hn.R.x,Hn.R.y,armW,sleeve,!back,handR,skin);
+  if(Hn.prop) Hn.prop();
+  // neck + head
+  var hcx=ux+bowFwd*0.4;
+  ctx.strokeStyle=skinD; ctx.lineWidth=0.058*h; ctx.beginPath(); ctx.moveTo(hcx,shoulderY); ctx.lineTo(hcx,headCY+headR*0.55); ctx.stroke();
+  ctx.fillStyle=skin; ctx.save(); ctx.translate(hcx,headCY); ctx.scale(1,1.08); ctx.beginPath(); ctx.arc(0,0,headR,0,6.28); ctx.fill(); ctx.restore(); ctx.strokeStyle=skinD; ctx.lineWidth=1; ctx.save(); ctx.translate(hcx,headCY); ctx.scale(1,1.08); ctx.beginPath(); ctx.arc(0,0,headR,0,6.28); ctx.stroke(); ctx.restore();
+  if(!back){ ctx.save(); ctx.beginPath(); ctx.ellipse(hcx,headCY,headR,headR*1.08,0,0,6.28); ctx.clip(); ctx.fillStyle="rgba(0,0,0,0.06)"; ctx.fillRect(hcx+headR*0.22,headCY-headR*1.2,headR,headR*2.4); ctx.fillStyle="rgba(255,225,190,0.18)"; ctx.beginPath(); ctx.arc(hcx-headR*0.3,headCY-headR*0.2,headR*0.5,0,6.28); ctx.fill(); ctx.restore();
+    if(h>20){ var ey=headCY-headR*0.02, ex=headR*0.34;
+      ctx.fillStyle="#f4ede1"; ctx.beginPath(); ctx.ellipse(hcx-ex,ey,headR*0.18,headR*0.13,0,0,6.28); ctx.ellipse(hcx+ex,ey,headR*0.18,headR*0.13,0,0,6.28); ctx.fill();
+      ctx.fillStyle="#2c2118"; ctx.beginPath(); ctx.arc(hcx-ex+headR*0.02,ey,headR*0.085,0,6.28); ctx.arc(hcx+ex+headR*0.02,ey,headR*0.085,0,6.28); ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,0.85)"; ctx.beginPath(); ctx.arc(hcx-ex+headR*0.05,ey-headR*0.03,headR*0.03,0,6.28); ctx.arc(hcx+ex+headR*0.05,ey-headR*0.03,headR*0.03,0,6.28); ctx.fill();
+      ctx.strokeStyle=shade(hair||"#4a3424",-0.05); ctx.lineWidth=Math.max(1,headR*0.09); ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(hcx-ex-headR*0.16,ey-headR*0.30); ctx.lineTo(hcx-ex+headR*0.16,ey-headR*0.36); ctx.moveTo(hcx+ex-headR*0.16,ey-headR*0.36); ctx.lineTo(hcx+ex+headR*0.16,ey-headR*0.30); ctx.stroke();
+      ctx.strokeStyle=shade(skin,-0.22); ctx.lineWidth=Math.max(0.8,headR*0.06); ctx.beginPath(); ctx.moveTo(hcx,ey+headR*0.12); ctx.lineTo(hcx-headR*0.06,ey+headR*0.34); ctx.stroke();
+      if(!K.beard){ ctx.strokeStyle=shade(skin,-0.42); ctx.lineWidth=Math.max(1,headR*0.075); ctx.beginPath(); ctx.arc(hcx,headCY+headR*0.4,headR*0.24,0.32,Math.PI-0.32); ctx.stroke(); } }
+    if(K.beard){ ctx.fillStyle=hair||"#5a4636"; ctx.beginPath(); ctx.moveTo(hcx-headR*0.84,headCY+headR*0.16); ctx.quadraticCurveTo(hcx,headCY+headR*1.78,hcx+headR*0.84,headCY+headR*0.16); ctx.quadraticCurveTo(hcx,headCY+headR*0.7,hcx-headR*0.84,headCY+headR*0.16); ctx.fill();
+      ctx.fillStyle=shade(hair||"#5a4636",0.04); ctx.beginPath(); ctx.ellipse(hcx,headCY+headR*0.36,headR*0.5,headR*0.15,0,0,6.28); ctx.fill(); } }
+  if(hair && !K.helmet){ ctx.fillStyle=hair; if(back){ ctx.beginPath(); ctx.ellipse(hcx,headCY,headR*1.04,headR*1.12,0,0,6.28); ctx.fill(); }
+    else { ctx.beginPath(); ctx.arc(hcx,headCY-headR*0.05,headR*1.05,Math.PI*0.80,Math.PI*0.20,false); ctx.quadraticCurveTo(hcx,headCY-headR*0.52,hcx-headR*1.02,headCY-headR*0.06); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(hcx-headR*0.95,headCY+headR*0.1,headR*0.18,headR*0.4,0,0,6.28); ctx.ellipse(hcx+headR*0.95,headCY+headR*0.1,headR*0.18,headR*0.4,0,0,6.28); ctx.fill(); } }
+  if(K.band){ ctx.strokeStyle=K.band; ctx.lineWidth=Math.max(1.4,0.03*h); ctx.beginPath(); ctx.moveTo(hcx-headR,headCY-headR*0.22); ctx.lineTo(hcx+headR,headCY-headR*0.22); ctx.stroke();
+    ctx.strokeStyle=shade(K.band,0.25); ctx.lineWidth=Math.max(1,0.02*h); ctx.beginPath(); ctx.moveTo(hcx+headR*0.7,headCY-headR*0.3); ctx.lineTo(hcx+headR*1.05,headCY-headR*1.15); ctx.stroke(); }
+  if(K.helmet){ ctx.fillStyle=K.helmet; ctx.beginPath(); ctx.arc(hcx,headCY-headR*0.08,headR*1.12,Math.PI,0); ctx.fill(); ctx.fillStyle=shade(K.helmet,-0.15); ctx.fillRect(hcx-headR*1.12,headCY-headR*0.08,headR*2.24,headR*0.36); ctx.fillStyle=shade(K.helmet,0.25); ctx.fillRect(hcx-headR*0.1,headCY-headR*1.2,headR*0.2,headR*0.5); }
+  if(K.crown){ var cw=headR*1.28; ctx.fillStyle=K.trim||"#e7c64a"; ctx.beginPath(); ctx.moveTo(hcx-cw,headCY-headR*0.7); ctx.lineTo(hcx-cw,headCY-headR*1.35); ctx.lineTo(hcx-cw*0.5,headCY-headR*0.9); ctx.lineTo(hcx,headCY-headR*1.7); ctx.lineTo(hcx+cw*0.5,headCY-headR*0.9); ctx.lineTo(hcx+cw,headCY-headR*1.35); ctx.lineTo(hcx+cw,headCY-headR*0.7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#fff3c4"; ctx.beginPath(); ctx.arc(hcx,headCY-headR*1.5,headR*0.18,0,6.28); ctx.fill(); }
+  if(K.glow){ ctx.save(); ctx.globalAlpha=0.7; var gg=ctx.createRadialGradient(hcx,headCY,1,hcx,headCY,headR*2.7); gg.addColorStop(0,"rgba(255,250,220,0.9)"); gg.addColorStop(1,"rgba(255,250,220,0)"); ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(hcx,headCY,headR*2.7,0,6.28); ctx.fill(); ctx.restore(); }
+  if(K.spear){ ctx.strokeStyle="#5a4630"; ctx.lineWidth=Math.max(1.6,0.035*h); ctx.beginPath(); ctx.moveTo(ux+0.16*h,shoulderY-0.1*h); ctx.lineTo(ux+0.16*h,feet-0.02*h); ctx.stroke(); ctx.fillStyle="#cfd3da"; ctx.beginPath(); ctx.moveTo(ux+0.16*h,shoulderY-0.16*h); ctx.lineTo(ux+0.11*h,shoulderY-0.06*h); ctx.lineTo(ux+0.21*h,shoulderY-0.06*h); ctx.fill(); }
+  if(K.staff){ ctx.strokeStyle="#7a5a36"; ctx.lineWidth=Math.max(1.6,0.035*h); ctx.beginPath(); ctx.moveTo(ux-0.17*h,shoulderY-0.06*h); ctx.lineTo(ux-0.17*h,feet-0.01*h); ctx.stroke(); ctx.fillStyle="#6a4f30"; ctx.beginPath(); ctx.arc(ux-0.17*h,shoulderY-0.06*h,0.03*h,0,6.28); ctx.fill(); }
+  if(K.pack && back){ ctx.fillStyle="#5a4630"; ctx.fillRect(ux-0.09*h,shoulderY+0.04*h,0.18*h,0.22*h); ctx.strokeStyle="#3a2c18"; ctx.lineWidth=1; ctx.strokeRect(ux-0.09*h,shoulderY+0.04*h,0.18*h,0.22*h); } }
+function robeOf(a,K){ var rid=Math.floor((a.c*13+a.r*7)); return K.robe[((rid%K.robe.length)+K.robe.length)%K.robe.length]; }
+function drawFallen(x,y,s,K,robe){ robe=robe||K.robe[0];
+  ctx.save(); ctx.globalAlpha=0.22; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(x,y,17*s,5*s,0,0,6.28); ctx.fill(); ctx.restore();
+  ctx.fillStyle=robe; ctx.beginPath(); ctx.ellipse(x,y-3.5*s,15*s,6*s,0,0,6.28); ctx.fill(); ctx.strokeStyle=shade(robe,-0.22); ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle=shade(robe,0.08); ctx.beginPath(); ctx.ellipse(x+2*s,y-5*s,9*s,3*s,0,0,6.28); ctx.fill();
+  ctx.fillStyle=K.skin; ctx.beginPath(); ctx.arc(x-15*s,y-5*s,4.4*s,0,6.28); ctx.fill();
+  if(K.hair){ ctx.fillStyle=K.hair; ctx.beginPath(); ctx.arc(x-16*s,y-6*s,4.6*s,0.4,3.5); ctx.fill(); } }
+function drawPerson(a){ var s=(a.scale||1)*(a.hero?(STAGE.heroBoost||1):1); var P=a.fixed?a.fixed:iso(a.c,a.r); var x=P.x,y=P.y; var K=KINDS[a.kind]||KINDS.citizen;
+  if(a.hero) heroAura(x,y,s, a.kind==="angel", a===world.primaryHero);
+  if(a.pose==="fallen"){ drawFallen(x,y,s,K,robeOf(a,K)); return; }
+  var stationary=(a.idle||a.wait>0||a.pose==="kneel"||a.pose==="pray"||a.pose==="watch"||a.pose==="enthroned");
+  var bob=(!stationary)? Math.abs(Math.sin(a.phase))*1.4*s : 0;
+  ctx.save(); ctx.globalAlpha=0.26; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(x,y,10*s,4*s,0,0,6.28); ctx.fill(); ctx.restore();
+  var pose=a.pose||"idle"; if(pose==="walk"&&stationary) pose="idle";
+  drawHumanoid(x,y-bob,42*s,{K:K,robe:robeOf(a,K),pose:pose,phase:a.phase,dir:"front",lean:(pose==="flee"||pose==="run"||pose==="panic")?(a.face||1)*2.4*s:0}); }
+
+/* ===================== BACKDROP & ATMOSPHERE ===================== */
+function drawBackdrop(){ var m=STAGE.mood;
+  var g=ctx.createLinearGradient(0,0,0,Hc); g.addColorStop(0,m.sky[0]); g.addColorStop(1,m.sky[1]); ctx.fillStyle=g; ctx.fillRect(0,0,Wc,Hc);
+  // stars (night)
+  if(m.night){ ctx.save(); for(var i=0;i<60;i++){ var sx=(i*97.3)%Wc, sy=(i*53.7)%(Hc*0.5); var tw=0.5+0.5*Math.sin(now()/600+i); ctx.globalAlpha=0.5*tw; ctx.fillStyle="#dfe6ff"; ctx.fillRect(sx,sy,1.6,1.6); } ctx.restore();
+    // moon
+    ctx.save(); ctx.globalAlpha=0.9; var mg=ctx.createRadialGradient(Wc*0.8,Hc*0.18,2,Wc*0.8,Hc*0.18,60); mg.addColorStop(0,"#eef2ff"); mg.addColorStop(0.5,"rgba(220,228,255,0.6)"); mg.addColorStop(1,"rgba(220,228,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(Wc*0.8,Hc*0.18,60,0,6.28); ctx.fill(); ctx.fillStyle="#f3f6ff"; ctx.beginPath(); ctx.arc(Wc*0.8,Hc*0.18,18,0,6.28); ctx.fill(); ctx.restore(); }
+  else { // sun glow
+    ctx.save(); ctx.globalAlpha=m.sun[3]; var sx2=Wc*m.sun[1], sy2=Hc*m.sun[2];
+    var sg=ctx.createRadialGradient(sx2,sy2,4,sx2,sy2,Math.max(Wc,Hc)*0.55); sg.addColorStop(0,m.sun[0]); sg.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=sg; ctx.fillRect(0,0,Wc,Hc); ctx.restore(); }
+  // hills (parallax, mood-tinted)
+  var off=cam.x*0.04; var h1=shade(m.hill,0.06), h2=shade(m.hill,-0.12);
+  [[h1,0.34,46],[h2,0.44,34]].forEach(function(spec,idx){ ctx.fillStyle=spec[0]; ctx.beginPath(); ctx.moveTo(-50,Hc);
+    var baseY=Hc*spec[1], amp=spec[2]; for(var xx=-50;xx<=Wc+50;xx+=24){ var yy=baseY+Math.sin((xx+off*(idx+1)*6)/120+idx)*amp*0.5+Math.sin(xx/300)*amp; ctx.lineTo(xx,yy); }
+    ctx.lineTo(Wc+50,Hc); ctx.closePath(); ctx.fill(); });
+  if(m.mist){ ctx.save(); ctx.globalAlpha=0.5; var mgr=ctx.createLinearGradient(0,Hc*0.45,0,Hc*0.75); mgr.addColorStop(0,"rgba(220,205,165,0)"); mgr.addColorStop(1,"rgba(220,205,165,0.5)"); ctx.fillStyle=mgr; ctx.fillRect(0,Hc*0.45,Wc,Hc*0.4); ctx.restore(); }
+}
+function drawWorldTint(){ var m=STAGE.mood; if(m.tint){ ctx.fillStyle=m.tint; ctx.fillRect(0,0,Wc,Hc); } }
+function drawFocusDim(){ if(!STAGE.dim) return; var cx=Wc/2, cy=Hc*0.52;
+  if(world.primaryHero){ var sp=w2s(heroWorld(world.primaryHero)); cx=sp.x; cy=sp.y-18; }
+  cx=clamp(cx, Wc*0.18, Wc*0.82); cy=clamp(cy, Hc*0.18, Hc*0.82);
+  ctx.save(); var R=Math.max(Wc,Hc)*0.66;
+  var g=ctx.createRadialGradient(cx,cy,R*0.16,cx,cy,R);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(0.5,"rgba(0,0,0,"+(STAGE.dim*0.5)+")"); g.addColorStop(1,"rgba(0,0,0,"+STAGE.dim+")");
+  ctx.fillStyle=g; ctx.fillRect(0,0,Wc,Hc); ctx.restore(); }
+function drawBeam(){ if(!STAGE.beam) return; var cx=Wc/2, cy=Hc*0.5;
+  if(world.primaryHero){ var sp=w2s(heroWorld(world.primaryHero)); cx=sp.x; cy=sp.y-10*(world.primaryHero.scale||1); }
+  ctx.save(); ctx.globalCompositeOperation="lighter";
+  ctx.globalAlpha=0.5; var g=ctx.createLinearGradient(0,0,0,cy); g.addColorStop(0,"rgba(255,251,232,0)"); g.addColorStop(1,"rgba(255,251,232,0.5)");
+  ctx.fillStyle=g; poly([{x:cx-30,y:-10},{x:cx+30,y:-10},{x:cx+80,y:cy},{x:cx-80,y:cy}]);
+  ctx.globalAlpha=0.55; var g2=ctx.createLinearGradient(0,0,0,cy); g2.addColorStop(0,"rgba(255,255,248,0)"); g2.addColorStop(1,"rgba(255,255,248,0.6)");
+  ctx.fillStyle=g2; poly([{x:cx-12,y:-10},{x:cx+12,y:-10},{x:cx+34,y:cy},{x:cx-34,y:cy}]);
+  ctx.globalAlpha=0.7; var rg=ctx.createRadialGradient(cx,cy,2,cx,cy,92); rg.addColorStop(0,"rgba(255,255,248,0.7)"); rg.addColorStop(1,"rgba(255,255,248,0)"); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(cx,cy,92,0,6.28); ctx.fill();
+  ctx.restore(); }
+function drawWeather(){ var m=STAGE.mood;
+  if(m.rays){ ctx.save(); ctx.globalAlpha=0.12; var sx=Wc*m.sun[1], sy=Hc*m.sun[2]; ctx.fillStyle="#fff7da";
+    for(var i=0;i<7;i++){ var a0=(-0.4+i*0.16); var len=Math.max(Wc,Hc); ctx.beginPath(); ctx.moveTo(sx,sy);
+      ctx.lineTo(sx+Math.cos(a0+1.2)*len, sy+Math.sin(a0+1.2)*len); ctx.lineTo(sx+Math.cos(a0+1.32)*len, sy+Math.sin(a0+1.32)*len); ctx.closePath(); ctx.fill(); } ctx.restore(); }
+  if(m.storm){ ctx.save(); ctx.strokeStyle="rgba(180,190,210,0.35)"; ctx.lineWidth=1; var t=now()*0.5;
+    for(var r=0;r<70;r++){ var rx=((r*173.7+t)%Wc); var ry=((r*97.1+t*1.6)%Hc); ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-3,ry+12); ctx.stroke(); } ctx.restore();
+    STAGE.lightning-= (now()-(STAGE._lt||now())); STAGE._lt=now();
+    if(STAGE.lightning<=0 && Math.random()<0.01){ STAGE.lightning=120; }
+    if(STAGE.lightning>0){ ctx.save(); ctx.globalAlpha=clamp(STAGE.lightning/120,0,1)*0.35; ctx.fillStyle="#dfe6ff"; ctx.fillRect(0,0,Wc,Hc); ctx.restore(); } }
+  if(STAGE.embers){ ctx.save(); var t2=now()*0.04; for(var e=0;e<46;e++){ var ex=(e*131.3)%Wc; var ey=Hc-((e*61.7+t2*(20+e%10))%(Hc*0.72)); ctx.globalAlpha=0.55*(0.5+0.5*Math.sin(now()/200+e)); ctx.fillStyle=(e%3===0)?"#f4d04a":"#e0883c"; ctx.fillRect(ex,ey,2,2); } ctx.restore(); } }
+function drawVignette(){ var m=STAGE.mood; ctx.save();
+  var g=ctx.createRadialGradient(Wc/2,Hc*0.45,Math.min(Wc,Hc)*0.34,Wc/2,Hc*0.5,Math.max(Wc,Hc)*0.78);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1, m.night||m.storm?"rgba(0,0,0,0.5)":"rgba(0,0,0,0.34)"); ctx.fillStyle=g; ctx.fillRect(0,0,Wc,Hc); ctx.restore(); }
+
+/* ===================== HERO LABELS (screen space) ===================== */
+var ROLE={king:"King",prophet:"Prophet",alma:"High Priest",amulon:"Taskmaster",scout:"Explorer",priest:"Priest of Noah",angel:""};
+function drawHeroLabels(){ ctx.save(); ctx.textAlign="center"; ctx.textBaseline="middle";
+  world.actors.forEach(function(a){ if(!a.name) return;
+    var sc=(a.scale||1)*(a.hero?(STAGE.heroBoost||1):1);
+    var P=heroWorld(a); var s=w2s({x:P.x, y:P.y-42*sc});
+    if(s.x<-90||s.x>Wc+90||s.y<-30||s.y>Hc+30) return;
+    var sub=(a.sub!=null? a.sub : (ROLE[a.kind]||"")); var prim=(a===world.primaryHero);
+    ctx.font="700 "+(prim?15:13)+"px Cinzel, serif"; var w1=ctx.measureText(a.name).width;
+    ctx.font="600 10px 'IBM Plex Mono', monospace"; var w2=sub? ctx.measureText(sub.toUpperCase()).width : 0;
+    var pad=10, bw=Math.max(w1,w2)+pad*2, bh=sub?34:23, bx=s.x-bw/2, by=s.y-bh-9;
+    ctx.beginPath(); ctx.moveTo(s.x-6,by+bh); ctx.lineTo(s.x+6,by+bh); ctx.lineTo(s.x,by+bh+7); ctx.closePath(); ctx.fillStyle="rgba(16,18,26,0.94)"; ctx.fill();
+    roundRect(bx,by,bw,bh,8); ctx.fillStyle="rgba(16,18,26,0.94)"; ctx.fill(); ctx.lineWidth=prim?1.4:1; ctx.strokeStyle= a.kind==="angel"?"#fff2bf":(prim?"#e7c64a":"#9a7f25"); ctx.stroke();
+    ctx.fillStyle="#f5f1e5"; ctx.font="700 "+(prim?15:13)+"px Cinzel, serif"; ctx.fillText(a.name, s.x, by+(sub?14:bh/2+1));
+    if(sub){ ctx.fillStyle= a.kind==="angel"?"#fff2bf":"#d9b43a"; ctx.font="600 10px 'IBM Plex Mono', monospace"; ctx.fillText(sub.toUpperCase(), s.x, by+27); }
+  }); ctx.restore(); }
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+/* ===================== GROUND-LEVEL WALK MODE ===================== */
+var HSCALE=1/12; // iso px height -> world tile-height units
+var WALK={ active:false, third:true, eye:1.55, player:{x:0,y:0}, yaw:0, pitchPx:24,
+  camX:0,camY:0,camEye:1.55, fX:1,fY:0,rX:0,rY:1, f:1, horizon:0, keys:{}, joy:null, blocked:null, n:0, inited:false };
+function walkHeight(e){ var t=e.type;
+  if(t==="house") return (e.h||18)*HSCALE+(e.big?0.55:0.4);
+  if(t==="temple") return (e.h||44)*HSCALE+0.6;
+  if(t==="tower") return (e.h||84)*HSCALE;
+  if(t==="wall") return 18*HSCALE; if(t==="gate") return 26*HSCALE;
+  if(t==="stall") return 12*HSCALE; if(t==="well") return 9*HSCALE; return 0.5; }
+function walkBuildBlocked(){ var W=world,b=[]; for(var r=0;r<W.n;r++){b[r]=[];}
+  W.ents.forEach(function(e){ if(["tree","rock","house","temple","tower","wall","stall","well","tent","fire","crate","cart"].indexOf(e.type)>=0){
+    for(var i=0;i<(e.w||1);i++)for(var j=0;j<(e.d||1);j++){ var cc=Math.floor(e.c+i),rr=Math.floor(e.r+j); if(b[rr]) b[rr][cc]=true; } } });
+  WALK.blocked=b; WALK.n=W.n; }
+function walkBlockedAt(x,y){ var c=Math.floor(x),r=Math.floor(y); if(c<1||r<1||c>=WALK.n-1||r>=WALK.n-1) return true; return !!(WALK.blocked[r]&&WALK.blocked[r][c]); }
+function walkPlacePlayer(){ var W=world,f=W.focus.tile; var tx=f[0]+0.5,ty=f[1]+0.5; if(W.tower){ tx=W.tower.x+0.5; ty=W.tower.y+0.5; }
+  var cand=[[f[0]+0.5,f[1]+4.5],[f[0]+4.5,f[1]+0.5],[f[0]+0.5,f[1]-4.5],[f[0]-4.5,f[1]+0.5],[f[0]+3.5,f[1]+3.5],[f[0]+0.5,f[1]+0.5]];
+  var best=cand[cand.length-1]; for(var i=0;i<cand.length;i++){ if(!walkBlockedAt(cand[i][0],cand[i][1])){ best=cand[i]; break; } }
+  WALK.player.x=best[0]; WALK.player.y=best[1]; WALK.yaw=Math.atan2(ty-best[1], tx-best[0]); }
+function walkSyncScene(){ talkClose(); WALK.near=null; WALK._nearShown=null; walkBuildBlocked(); walkPlacePlayer(); }
+function walkEnter(){ if(WALK.active) return; if(!WALK.inited) walkInit(); stopPlay(); WALK.active=true; walkBuildBlocked(); walkPlacePlayer(); walkResetPitch();
+  WALK.near=null; WALK._nearShown=null; if(WALK.senum==null) WALK.senum=8; if(!WALK.bag) WALK.bag=[]; TALK.open=false;
+  document.getElementById("walkUI").classList.add("on"); document.getElementById("stage").classList.add("walking"); var wb=document.getElementById("walkBtn"); if(wb) wb.style.display="none"; }
+function walkExit(){ if(!WALK.active) return; WALK.active=false; talkClose(); WALK.near=null; WALK._nearShown=null;
+  document.getElementById("walkUI").classList.remove("on"); document.getElementById("stage").classList.remove("walking"); var wb=document.getElementById("walkBtn"); if(wb) wb.style.display=""; setScene(scene,true); }
+function walkCamera(){ var p=WALK.player,yaw=WALK.yaw, fx=Math.cos(yaw),fy=Math.sin(yaw);
+  WALK.fX=fx; WALK.fY=fy; WALK.rX=fy; WALK.rY=-fx; WALK.f=(Wc*0.5)/Math.tan(82*Math.PI/360);
+  if(WALK.third){ WALK.camX=p.x-fx*4.0; WALK.camY=p.y-fy*4.0; WALK.camEye=WALK.eye+1.0; }
+  else { WALK.camX=p.x; WALK.camY=p.y; WALK.camEye=WALK.eye; }
+  WALK.horizon=Hc*0.5; }
+function walkResetPitch(){ WALK.pitchPx = WALK.third? -Hc*0.1 : Hc*0.012; }
+function projFP(px,py,pz){ var dx=px-WALK.camX,dy=py-WALK.camY; var depth=dx*WALK.fX+dy*WALK.fY; var lat=dx*WALK.rX+dy*WALK.rY;
+  var dd=depth<0.06?0.06:depth; return {x:Wc/2+(lat/dd)*WALK.f, y:WALK.horizon+((WALK.camEye-pz)/dd)*WALK.f+WALK.pitchPx, depth:depth, scale:WALK.f/dd}; }
+function walkSky(){ var m=STAGE.mood, hz=WALK.horizon+WALK.pitchPx; if(hz>1){ var g=ctx.createLinearGradient(0,0,0,hz); g.addColorStop(0,m.sky[0]); g.addColorStop(1,m.sky[1]); ctx.fillStyle=g; ctx.fillRect(0,0,Wc,hz); }
+  if(m.night && hz>2){ ctx.save(); for(var i=0;i<70;i++){ var sx=(i*97.3)%Wc, sy=(i*43.7)%(hz*0.92); var tw=0.5+0.5*Math.sin(now()/600+i); ctx.globalAlpha=0.6*tw; ctx.fillStyle="#dfe6ff"; ctx.fillRect(sx,sy,1.6,1.6);} ctx.restore(); }
+  else if(hz>2){ ctx.save(); ctx.globalAlpha=m.sun[3]; var gx=Wc*m.sun[1], gy=hz*m.sun[2]+8; var sg=ctx.createRadialGradient(gx,gy,4,gx,gy,Math.max(Wc,Hc)*0.5); sg.addColorStop(0,m.sun[0]); sg.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=sg; ctx.fillRect(0,0,Wc,hz+50); ctx.restore(); }
+  if(hz>2){ ctx.fillStyle=shade(m.hill,-0.04); ctx.beginPath(); ctx.moveTo(0,hz); for(var xx=0;xx<=Wc;xx+=26){ ctx.lineTo(xx,hz-7-11*Math.abs(Math.sin(xx/170+WALK.yaw*1.4))); } ctx.lineTo(Wc,hz); ctx.closePath(); ctx.fill(); }
+  var gc=world.pal.tiles.grass||"#6f7d3a", gg=ctx.createLinearGradient(0,Math.max(0,hz),0,Hc); gg.addColorStop(0,shade(gc,-0.12)); gg.addColorStop(1,shade(gc,0.05)); ctx.fillStyle=gg; ctx.fillRect(0,Math.max(0,hz),Wc,Hc-Math.max(0,hz)); }
+function walkGround(){ var W=world,p=WALK.player,R=11.5; var c0=Math.floor(p.x-R),c1=Math.ceil(p.x+R),r0=Math.floor(p.y-R),r1=Math.ceil(p.y+R); var ts=[];
+  for(var r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++){ if(c<0||r<0||c>=W.n||r>=W.n) continue; var ddx=c+0.5-p.x,ddy=r+0.5-p.y; if(ddx*ddx+ddy*ddy>R*R) continue;
+    var dep=(c+0.5-WALK.camX)*WALK.fX+(r+0.5-WALK.camY)*WALK.fY; if(dep<0.12) continue; ts.push({c:c,r:r,dep:dep}); }
+  ts.sort(function(a,b){return b.dep-a.dep;});
+  for(var i=0;i<ts.length;i++){ var t=ts[i], a=projFP(t.c,t.r,0),b=projFP(t.c+1,t.r,0),cc=projFP(t.c+1,t.r+1,0),d=projFP(t.c,t.r+1,0);
+    if(a.depth<0.05&&b.depth<0.05&&cc.depth<0.05&&d.depth<0.05) continue;
+    var type=W.grid[t.r][t.c], col=W.pal.tiles[type]||"#666", v=((t.c*73856+t.r*19349)%100)/100; col=shade(col, v<0.5?-0.035:0.03);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(cc.x,cc.y); ctx.lineTo(d.x,d.y); ctx.closePath(); ctx.fillStyle=col; ctx.fill();
+    if(type==="water"){ ctx.fillStyle="rgba(150,200,205,0.22)"; ctx.fill(); }
+    var fog=Math.min(0.8,Math.max(0,(t.dep-3.5)/9)*0.9); if(fog>0.02){ ctx.save(); ctx.globalAlpha=fog; ctx.fillStyle=STAGE.mood.sky[1]; ctx.fill(); ctx.restore(); } } }
+function walkBox(c,r,w,d,H,top,left,right){ var x0=c,x1=c+w,y0=r,y1=r+d, cx=WALK.camX,cy=WALK.camY, faces=[];
+  if(cy<y0) faces.push([[x0,y0],[x1,y0],left]); if(cy>y1) faces.push([[x1,y1],[x0,y1],left]);
+  if(cx<x0) faces.push([[x0,y1],[x0,y0],right]); if(cx>x1) faces.push([[x1,y0],[x1,y1],right]);
+  for(var i=0;i<faces.length;i++){ var fc=faces[i], pa=projFP(fc[0][0],fc[0][1],0), pb=projFP(fc[1][0],fc[1][1],0), tb=projFP(fc[1][0],fc[1][1],H), ta=projFP(fc[0][0],fc[0][1],H);
+    if(pa.depth<0.04&&pb.depth<0.04) continue; ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.lineTo(tb.x,tb.y); ctx.lineTo(ta.x,ta.y); ctx.closePath(); ctx.fillStyle=fc[2]; ctx.fill(); ctx.strokeStyle="rgba(0,0,0,0.13)"; ctx.lineWidth=1; ctx.stroke(); }
+  var t0=projFP(x0,y0,H),t1=projFP(x1,y0,H),t2=projFP(x1,y1,H),t3=projFP(x0,y1,H);
+  if(!(t0.depth<0.04&&t1.depth<0.04&&t2.depth<0.04&&t3.depth<0.04)){ ctx.beginPath(); ctx.moveTo(t0.x,t0.y); ctx.lineTo(t1.x,t1.y); ctx.lineTo(t2.x,t2.y); ctx.lineTo(t3.x,t3.y); ctx.closePath(); ctx.fillStyle=top; ctx.fill(); ctx.strokeStyle="rgba(0,0,0,0.1)"; ctx.lineWidth=1; ctx.stroke(); } }
+function boxDraw(c,r,w,d,H,top,left,right){ var cx=c+w/2,cy=r+d/2, dep=(cx-WALK.camX)*WALK.fX+(cy-WALK.camY)*WALK.fY; if(dep< -0.6) return null; return {depth:dep, run:function(){ walkBox(c,r,w,d,H,top,left,right); }}; }
+function billboard(px,py,hUnits,draw){ var p=projFP(px,py,0); if(p.depth<0.08) return null; return {depth:p.depth, run:function(){ draw(p.x,p.y,hUnits*p.scale,p.scale); }}; }
+function bbTree(x,y,h){ var tw=h*0.12; ctx.fillStyle="#5a4128"; ctx.fillRect(x-tw/2,y-h*0.45,tw,h*0.45); ctx.fillStyle="#3f5a27"; ctx.beginPath(); ctx.arc(x,y-h*0.62,h*0.3,0,6.28); ctx.fill(); ctx.fillStyle="#4d6b30"; ctx.beginPath(); ctx.arc(x-h*0.16,y-h*0.5,h*0.22,0,6.28); ctx.arc(x+h*0.18,y-h*0.52,h*0.24,0,6.28); ctx.fill(); ctx.fillStyle="rgba(120,150,80,0.5)"; ctx.beginPath(); ctx.arc(x-h*0.08,y-h*0.7,h*0.12,0,6.28); ctx.fill(); }
+function bbTent(x,y,h){ ctx.fillStyle="#b9a06a"; ctx.beginPath(); ctx.moveTo(x-h*0.5,y); ctx.lineTo(x,y-h); ctx.lineTo(x+h*0.5,y); ctx.closePath(); ctx.fill(); ctx.strokeStyle="#7d6a40"; ctx.lineWidth=1; ctx.stroke(); ctx.strokeStyle="rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.moveTo(x,y-h); ctx.lineTo(x,y); ctx.stroke(); }
+function bbBanner(x,y,h,sc,col){ ctx.strokeStyle="#3a2c18"; ctx.lineWidth=Math.max(1.5,h*0.05); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-h); ctx.stroke(); var wv=Math.sin(now()/300+x)*h*0.05; ctx.fillStyle=col||"#b23b3b"; ctx.beginPath(); ctx.moveTo(x,y-h); ctx.lineTo(x+h*0.42+wv,y-h*0.86); ctx.lineTo(x,y-h*0.62); ctx.closePath(); ctx.fill(); }
+function bbTorch(x,y,h){ ctx.strokeStyle="#4a3620"; ctx.lineWidth=Math.max(2,h*0.12); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-h*0.7); ctx.stroke(); drawFlame(x,y-h*0.7,h/26); }
+function bbFire(x,y,h,sc,big){ ctx.fillStyle="#3a2a18"; ctx.fillRect(x-h*0.4,y-h*0.08,h*0.8,h*0.12); drawFlame(x,y-h*0.05,(big?h/20:h/26)); }
+function bbRock(x,y,h){ ctx.fillStyle="#6b6f7a"; ctx.beginPath(); ctx.ellipse(x,y-h*0.4,h*0.55,h*0.42,0,0,6.28); ctx.fill(); ctx.fillStyle="rgba(140,144,154,0.5)"; ctx.beginPath(); ctx.ellipse(x-h*0.15,y-h*0.55,h*0.28,h*0.2,0,0,6.28); ctx.fill(); }
+function bbBush(x,y,h){ ctx.fillStyle="#3c6b2f"; ctx.beginPath(); ctx.arc(x-h*0.3,y-h*0.35,h*0.4,0,6.28); ctx.arc(x+h*0.3,y-h*0.35,h*0.4,0,6.28); ctx.arc(x,y-h*0.6,h*0.46,0,6.28); ctx.fill(); ctx.fillStyle="rgba(150,180,90,0.45)"; ctx.beginPath(); ctx.arc(x,y-h*0.72,h*0.22,0,6.28); ctx.fill(); }
+function bbFlowers(x,y,h,sc,col){ for(var i=0;i<5;i++){ var fx=x+(i-2)*h*0.22; ctx.strokeStyle="#3c6b2f"; ctx.lineWidth=Math.max(1,h*0.04); ctx.beginPath(); ctx.moveTo(fx,y); ctx.lineTo(fx,y-h*0.7); ctx.stroke(); ctx.fillStyle=col||"#d98fb0"; ctx.beginPath(); ctx.arc(fx,y-h*0.75,h*0.14,0,6.28); ctx.fill(); } }
+function bbPot(x,y,h){ ctx.fillStyle="#9a6f3a"; ctx.beginPath(); ctx.ellipse(x,y-h*0.5,h*0.42,h*0.5,0,0,6.28); ctx.fill(); ctx.fillStyle=shade("#9a6f3a",0.12); ctx.beginPath(); ctx.ellipse(x-h*0.12,y-h*0.62,h*0.16,h*0.22,0,0,6.28); ctx.fill(); ctx.fillStyle=shade("#9a6f3a",-0.2); ctx.beginPath(); ctx.ellipse(x,y-h*0.96,h*0.28,h*0.1,0,0,6.28); ctx.fill(); }
+function bbSheep(x,y,h){ ctx.fillStyle="#e8e4d8"; ctx.beginPath(); ctx.ellipse(x,y-h*0.45,h*0.55,h*0.42,0,0,6.28); ctx.fill(); ctx.fillStyle="#cfc9ba"; ctx.beginPath(); ctx.arc(x-h*0.5,y-h*0.55,h*0.22,0,6.28); ctx.fill(); ctx.fillStyle="#5a4a3a"; ctx.beginPath(); ctx.ellipse(x-h*0.62,y-h*0.55,h*0.16,h*0.2,0,0,6.28); ctx.fill(); ctx.fillStyle="#3a2c1c"; ctx.fillRect(x-h*0.12,y-h*0.12,h*0.08,h*0.14); ctx.fillRect(x+h*0.3,y-h*0.12,h*0.08,h*0.14); }
+function walkPushEntity(e,out){ var b=world.pal.bldg,t=e.type,d=null;
+  if(t==="house") d=boxDraw(e.c,e.r,e.w||1,e.d||1,walkHeight(e), shade(e.roof||b.top,0.05),b.left,b.right);
+  else if(t==="temple") d=boxDraw(e.c,e.r,e.w||1,e.d||1,walkHeight(e), shade(b.top,0.06),shade(b.left,0.03),b.right);
+  else if(t==="tower") d=boxDraw(e.c+0.1,e.r+0.1,(e.w||1)-0.2,(e.d||1)-0.2,walkHeight(e), shade(b.top,0.04),b.left,shade(b.right,-0.04));
+  else if(t==="wall") d=boxDraw(e.c+0.05,e.r+0.05,0.9,0.9,walkHeight(e), shade(b.top,-0.02),shade(b.left,-0.06),shade(b.right,-0.1));
+  else if(t==="gate"){ var d1=boxDraw(e.c+0.05,e.r+0.05,0.9,0.34,walkHeight(e),b.top,b.left,b.right); if(d1)out.push(d1); d=boxDraw(e.c+0.05,e.r+0.61,0.9,0.34,walkHeight(e),b.top,b.left,b.right); }
+  else if(t==="stall") d=boxDraw(e.c+0.2,e.r+0.2,0.6,0.6,walkHeight(e),"#caa06a","#a07f50","#7d6238");
+  else if(t==="well") d=boxDraw(e.c+0.3,e.r+0.3,0.4,0.4,walkHeight(e),"#9aa0ad","#7e8490","#666b76");
+  else if(t==="crate") d=boxDraw(e.c+0.25,e.r+0.25,0.5,0.5,1.0,"#a07f50","#86683f","#6a5230");
+  else if(t==="cart") d=boxDraw(e.c+0.15,e.r+0.3,0.7,0.4,0.8,"#8a6a40","#6f5230","#543e22");
+  else if(t==="tree") d=billboard(e.c+0.5,e.r+0.5,1.9+(e.v||0)*0.9,bbTree);
+  else if(t==="bush") d=billboard(e.c+0.5,e.r+0.5,0.9+(e.v||0)*0.4,bbBush);
+  else if(t==="flowers") d=billboard(e.c+0.5,e.r+0.5,0.5,function(x,y,h,sc){bbFlowers(x,y,h,sc,e.col);});
+  else if(t==="pot") d=billboard(e.c+0.5,e.r+0.5,0.7,bbPot);
+  else if(t==="sheep") d=billboard(e.c+0.5,e.r+0.5,0.9,bbSheep);
+  else if(t==="tent") d=billboard(e.c+0.5,e.r+0.5,1.2,bbTent);
+  else if(t==="banner") d=billboard(e.c+0.5,e.r+0.5,2.5,function(x,y,h,sc){bbBanner(x,y,h,sc,e.color);});
+  else if(t==="torch") d=billboard(e.c+0.5,e.r+0.5,1.5,bbTorch);
+  else if(t==="fire") d=billboard(e.c+0.5,e.r+0.5,e.big?1.7:1.15,function(x,y,h,sc){bbFire(x,y,h,sc,e.big);});
+  else if(t==="rock") d=billboard(e.c+0.5,e.r+0.5,0.75,bbRock);
+  if(d) out.push(d); }
+function walkTowerEnt(){ for(var i=0;i<world.ents.length;i++){ if(world.ents[i].type==="tower") return world.ents[i]; } return null; }
+function walkPerson(a){ var px,py,pz=0;
+  if(a.fixed && world.tower){ px=world.tower.x+0.5; py=world.tower.y+0.5; var te=walkTowerEnt(); pz=(te?walkHeight(te):6)+0.05; }
+  else { px=a.c; py=a.r; }
+  var p=projFP(px,py,pz); if(p.depth<0.1) return null; var units=1.72*(a.scale||1), hpx=units*p.scale; if(hpx<7) return null;
+  var fade=1; if(p.depth<1.25){ fade=clamp((p.depth-0.45)/0.8,0,1); if(fade<=0.02) return null; }
+  return {depth:p.depth, run:function(){ var K=KINDS[a.kind]||KINDS.citizen; ctx.save(); if(fade<1) ctx.globalAlpha=fade;
+    if(a.hero && hpx>20){ ctx.save(); ctx.globalAlpha=0.5*fade; var gg=ctx.createRadialGradient(p.x,p.y-hpx*0.5,2,p.x,p.y-hpx*0.5,hpx*0.7); gg.addColorStop(0, a.kind==="angel"?"rgba(255,250,210,0.5)":"rgba(255,228,150,0.4)"); gg.addColorStop(1,"rgba(255,228,150,0)"); ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(p.x,p.y-hpx*0.5,hpx*0.7,0,6.28); ctx.fill(); ctx.restore(); }
+    drawHumanoid(p.x,p.y,hpx,{K:K,robe:robeOf(a,K),pose:(a.pose==="fallen"?"kneel":(a.pose||"idle")),phase:a.phase,dir:"front"});
+    if((a.name||a.merchant) && hpx>26) walkTag(p.x,p.y-hpx-6*p.scale,a,p.scale,(a===WALK.near));
+    ctx.restore(); } }; }
+function walkTag(x,y,a,sc,near){ ctx.save(); ctx.textAlign="center";
+  var sub=(a.sub!=null?a.sub:(ROLE[a.kind]||"")); ctx.font="700 12px Cinzel, serif"; var w1=ctx.measureText(a.name).width;
+  ctx.font="600 9px 'IBM Plex Mono', monospace"; var w2=sub?ctx.measureText(sub.toUpperCase()).width:0;
+  var bw=Math.max(w1,w2)+14, bh=sub?30:19, bx=x-bw/2, by=y-bh;
+  ctx.fillStyle= near?"rgba(28,24,12,0.94)":"rgba(16,18,26,0.9)"; roundRect(bx,by,bw,bh,7); ctx.fill();
+  ctx.strokeStyle= a.kind==="angel"?"#fff2bf":(near?"#f0c843":"#9a7f25"); ctx.lineWidth=near?1.5:1; ctx.stroke();
+  ctx.fillStyle="#f3efe2"; ctx.font="700 12px Cinzel, serif"; ctx.fillText(a.name,x,by+(sub?13:13));
+  if(sub){ ctx.fillStyle= a.kind==="angel"?"#fff2bf":"#d9b43a"; ctx.font="600 9px 'IBM Plex Mono', monospace"; ctx.fillText(sub.toUpperCase(),x,by+24); }
+  if(near){ var cy=by-9; ctx.fillStyle="#f0c843"; ctx.beginPath(); ctx.moveTo(x-5,cy); ctx.lineTo(x+5,cy); ctx.lineTo(x,cy+6); ctx.closePath(); ctx.fill(); }
+  ctx.restore(); }
+function walkAvatar(){ var p=projFP(WALK.player.x,WALK.player.y,0); if(p.depth<0.1) return null; var hpx=1.74*p.scale; if(hpx<7) return null;
+  return {depth:p.depth, run:function(){ drawHumanoid(p.x,p.y,hpx,{K:KINDS.scout,robe:"#7c6a44",pose:"idle",phase:now()/240,dir:"back"}); } }; }
+function renderWalk(){ walkCamera(); walkFindNear(); ctx.setTransform(DPR,0,0,DPR,0,0); walkSky(); walkGround();
+  var draws=[]; world.ents.forEach(function(e){ walkPushEntity(e,draws); }); world.actors.forEach(function(a){ var d=walkPerson(a); if(d) draws.push(d); });
+  if(WALK.third){ var av=walkAvatar(); if(av) draws.push(av); }
+  draws.sort(function(a,b){ return b.depth-a.depth; }); for(var i=0;i<draws.length;i++) draws[i].run();
+  drawWorldTint(); drawWeather(); drawVignette();
+  if(!WALK.third){ ctx.strokeStyle="rgba(255,255,255,0.45)"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(Wc/2,Hc/2,4,0,6.28); ctx.stroke(); }
+  if(WALK.near&&WALK.near._sheep){ var sp=projFP(WALK.near.c,WALK.near.r,1.05); if(sp.depth>0.25){ ctx.save(); ctx.fillStyle="#f0c843"; ctx.beginPath(); ctx.moveTo(sp.x-6,sp.y-11); ctx.lineTo(sp.x+6,sp.y-11); ctx.lineTo(sp.x,sp.y-3); ctx.closePath(); ctx.fill(); ctx.strokeStyle="rgba(0,0,0,0.45)"; ctx.lineWidth=1; ctx.stroke(); ctx.restore(); } }
+  drawMinimap(); updateTalkPrompt(); }
+function updateWalk(dt){ if(TALK.open) return; var k=WALK.keys, f=0,s=0; if(k.w||k.up)f+=1; if(k.s||k.down)f-=1; if(k.a)s-=1; if(k.d)s+=1;
+  if(k.left) WALK.yaw-=dt*0.0027; if(k.right) WALK.yaw+=dt*0.0027; if(WALK.joy){ f+=WALK.joy.f; s+=WALK.joy.s; }
+  var len=Math.hypot(f,s); if(len>1){ f/=len; s/=len; } if(len<0.001) return;
+  var spd=3.3*dt/1000, fx=Math.cos(WALK.yaw),fy=Math.sin(WALK.yaw), rx=fy,ry=-fx;
+  var nx=WALK.player.x+(fx*f+rx*s)*spd, ny=WALK.player.y+(fy*f+ry*s)*spd;
+  if(!walkBlockedAt(nx,WALK.player.y)) WALK.player.x=nx; if(!walkBlockedAt(WALK.player.x,ny)) WALK.player.y=ny; }
+function walkInit(){ if(WALK.inited) return; WALK.inited=true;
+  var joyEl=document.getElementById("joy"), knob=document.getElementById("joyKnob"); var joyId=null,jcx=0,jcy=0;
+  function jMove(e){ var dx=e.clientX-jcx,dy=e.clientY-jcy,R=44,dd=Math.hypot(dx,dy); if(dd>R){ dx*=R/dd; dy*=R/dd; } if(knob) knob.style.transform="translate("+dx+"px,"+dy+"px)"; WALK.joy={f:-dy/R,s:dx/R}; }
+  function jEnd(e){ if(e.pointerId===joyId){ joyId=null; WALK.joy=null; if(knob) knob.style.transform="translate(0px,0px)"; } }
+  if(joyEl){ joyEl.addEventListener("pointerdown",function(e){ joyId=e.pointerId; var r=joyEl.getBoundingClientRect(); jcx=r.left+r.width/2; jcy=r.top+r.height/2; try{joyEl.setPointerCapture(e.pointerId);}catch(_){} jMove(e); e.preventDefault(); });
+    joyEl.addEventListener("pointermove",function(e){ if(e.pointerId===joyId) jMove(e); }); joyEl.addEventListener("pointerup",jEnd); joyEl.addEventListener("pointercancel",jEnd); }
+  var pad=document.getElementById("lookPad"); var lid=null,lx=0,ly=0;
+  if(pad){ pad.addEventListener("pointerdown",function(e){ lid=e.pointerId; lx=e.clientX; ly=e.clientY; try{pad.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+    pad.addEventListener("pointermove",function(e){ if(e.pointerId!==lid) return; var dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX; ly=e.clientY; WALK.yaw+=dx*0.005; WALK.pitchPx=clamp(WALK.pitchPx-dy*0.55,-Hc*0.28,Hc*0.42); });
+    function lEnd(e){ if(e.pointerId===lid) lid=null; } pad.addEventListener("pointerup",lEnd); pad.addEventListener("pointercancel",lEnd); }
+  function setK(e,v){ var m={w:"w",s:"s",a:"a",d:"d",arrowup:"up",arrowdown:"down",arrowleft:"left",arrowright:"right"}, kk=m[(e.key||"").toLowerCase()]; if(kk){ WALK.keys[kk]=v; if(WALK.active) e.preventDefault(); } }
+  function clickOpt(b){ if(!b) return; if(b.hasAttribute("data-buy")) talkBuy(parseInt(b.getAttribute("data-buy"),10)); else talkChoose(b.getAttribute("data-to")); }
+  window.addEventListener("keydown",function(e){ if(!WALK.active) return; var key=(e.key||"").toLowerCase();
+    if(TALK.open){ if(key==="escape"){ talkClose(); e.preventDefault(); return; } var d=parseInt(key,10); if(d>=1&&d<=9){ clickOpt(document.querySelectorAll("#talkOpts button")[d-1]); e.preventDefault(); } return; }
+    if(key==="e"){ if(WALK.near){ talkOpen(WALK.near); e.preventDefault(); } return; }
+    setK(e,true); });
+  window.addEventListener("keyup",function(e){ setK(e,false); });
+  var ex=document.getElementById("exitWalk"); if(ex) ex.addEventListener("click",walkExit);
+  var vt=document.getElementById("viewToggle"); if(vt) vt.addEventListener("click",function(){ WALK.third=!WALK.third; walkResetPitch(); vt.textContent=WALK.third?"View: 3rd":"View: 1st"; });
+  var wb=document.getElementById("walkBtn"); if(wb) wb.addEventListener("click",walkEnter);
+  var tp=document.getElementById("talkPrompt"); if(tp) tp.addEventListener("click",function(){ if(WALK.near) talkOpen(WALK.near); });
+  var to=document.getElementById("talkOpts"); if(to) to.addEventListener("click",function(e){ var b=e.target.closest?e.target.closest("button"):null; if(b) clickOpt(b); }); }
+
+/* ===================== DIALOGUE · TRADE · MINIMAP ===================== */
+var TALK={ open:false, tree:null, node:null, speaker:null, note:"" };
+function actorPos(a){ if(a.fixed && world.tower) return [world.tower.x+0.5, world.tower.y+0.5]; return [a.c,a.r]; }
+function walkFindNear(){ if(TALK.open) return; var best=null, bd=2.9, fx=Math.cos(WALK.yaw), fy=Math.sin(WALK.yaw);
+  for(var i=0;i<world.actors.length;i++){ var a=world.actors[i]; if(!(a.name||a.merchant||a.kind==="citizen"||a.kind==="priest")) continue;
+    var ap=actorPos(a); var dx=ap[0]-WALK.player.x, dy=ap[1]-WALK.player.y; var dist=Math.hypot(dx,dy); if(dist>2.9) continue;
+    var fwd=(dist<0.001)?1:(dx*fx+dy*fy)/dist; if(fwd< -0.35) continue;
+    var score=dist-fwd*0.9; if(score<bd){ bd=score; best=a; } }
+  for(var j=0;j<world.ents.length;j++){ var e=world.ents[j]; if(e.type!=="sheep") continue;
+    if(!e._talk) e._talk={name:"A Sheep", sub:"Flock", _sheep:true, c:e.c+0.5, r:e.r+0.5};
+    var dxs=e._talk.c-WALK.player.x, dys=e._talk.r-WALK.player.y, ds=Math.hypot(dxs,dys); if(ds>2.9) continue;
+    var fwds=(ds<0.001)?1:(dxs*fx+dys*fy)/ds; if(fwds< -0.35) continue;
+    var scs=ds-fwds*0.9; if(scs<bd){ bd=scs; best=e._talk; } }
+  WALK.near=best; }
+function updateTalkPrompt(){ var el=document.getElementById("talkPrompt"); if(!el) return; var show=WALK.active&&WALK.near&&!TALK.open;
+  if(show){ if(WALK._nearShown!==WALK.near){ var lbl=WALK.near._sheep?"<b>Greet</b> the sheep":("<b>"+(WALK.near.merchant?"Trade":"Talk")+"</b> with "+(WALK.near.name||"this townsperson")); el.innerHTML=lbl+" &middot; <span class='k'>E</span>"; WALK._nearShown=WALK.near; } el.style.display="flex"; }
+  else { el.style.display="none"; WALK._nearShown=null; } }
+function talkOpen(a){ if(!a) return; TALK.open=true; TALK.speaker=a; TALK.tree=dialogueFor(a); TALK.node=TALK.tree.start; TALK.note=""; WALK.keys={};
+  var tp=document.getElementById("talkPrompt"); if(tp) tp.style.display="none"; document.getElementById("talkBox").classList.add("on"); talkRender(); }
+function talkClose(){ TALK.open=false; TALK.speaker=null; TALK.tree=null; TALK.node=null; var tb=document.getElementById("talkBox"); if(tb) tb.classList.remove("on"); }
+function talkChoose(to){ if(to==="end"||!to){ talkClose(); return; } var n=TALK.tree[to]; if(!n){ talkClose(); return; } TALK.node=n; TALK.note=""; talkRender(); }
+function talkBuy(idx){ var w=TALK.node.wares[idx]; if(!w) return; if((WALK.senum||0)>=w.p){ WALK.senum-=w.p; WALK.bag.push(w.n); TALK.note="You trade "+w.p+" senum"+(w.p>1?"s":"")+" for "+w.n+"."; } else { TALK.note="You haven't senum enough for "+w.n+"."; } talkRender(); }
+function talkRender(){ var nm=document.getElementById("talkName"), tx=document.getElementById("talkText"), op=document.getElementById("talkOpts"); if(!nm) return; var a=TALK.speaker;
+  var role=(a.sub!=null?a.sub:(ROLE[a.kind]||"")); nm.innerHTML=(a.name||"Townsperson")+(role?" <span class='role'>"+role+"</span>":"");
+  var html="";
+  if(TALK.node.trade){ tx.innerHTML=(TALK.note?"<i>"+TALK.note+"</i><br>":"")+"\u201CHere are my wares.\u201D <span class='purse'>Purse: "+(WALK.senum||0)+" senum</span>";
+    for(var i=0;i<TALK.node.wares.length;i++){ var w=TALK.node.wares[i]; html+="<button data-buy='"+i+"'>"+w.n+" <span class='price'>"+w.p+" senum</span></button>"; }
+    html+="<button data-to='end' class='leave'>Done trading</button>"; }
+  else { tx.textContent="\u201C"+TALK.node.text+"\u201D"; var opts=TALK.node.opts||[{label:"Farewell.",to:"end"}]; for(var j=0;j<opts.length;j++){ html+="<button data-to='"+opts[j].to+"'>"+opts[j].label+"</button>"; } }
+  op.innerHTML=html; }
+function dialogueFor(a){ if(a._sheep) return SHEEP; if(a.merchant) return tradeTree(a); if(a.name){ var h=heroSay(a.name,scene); if(h) return h; } if(a.kind==="priest") return PRIESTS; return townSay(scene); }
+function tradeTree(a){ var z=(world.place==="zarahemla");
+  return { start:{text:"Welcome, friend! I have wares from across the land. Will you trade with me?", opts:[{label:"Show me your goods.",to:"shop"},{label:"What place is this?",to:"place"},{label:"Not today.",to:"end"}]},
+    place:{text:(z?"This is the great market of Zarahemla, where all the people are now gathered as one.":"The market of Lehi-Nephi. We deal in barley, cloth, oil, and finer things."),opts:[{label:"Show me your goods.",to:"shop"},{label:"Farewell.",to:"end"}]},
+    shop:{trade:true, wares:a.wares} }; }
+/* --- townsfolk: one conversation per scene --- */
+var TOWN=[
+/*0 Zeniff rebuilds*/ {start:{text:"Welcome, stranger, to Lehi-Nephi! King Zeniff led us back to the land of our fathers, and we are making it a city once more.",opts:[{label:"Was this land not held by Lamanites?",to:"a"},{label:"How fares the colony?",to:"b"},{label:"Good day.",to:"end"}]},a:{text:"King Laman granted us Lehi-Nephi and Shilom. My father says it was a snare to bring us into bondage, yet for now we prosper and are glad.",opts:[{label:"How fares the colony?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"We till the ground for corn and grain, we keep flocks, and we spin flax into cloth. The Lord has dealt kindly with us.",opts:[{label:"Long may it last.",to:"end"}]}},
+/*1 Noah reigns*/ {start:{text:"Behold King Noah's tower and the seats of his fine palace! He has built grandly, and the wine of his vineyards never runs dry.",opts:[{label:"Who pays for such splendor?",to:"a"},{label:"And his priests?",to:"b"},{label:"Splendid indeed.",to:"end"}]},a:{text:"We do, a fifth part of all we own. Some grumble, but the king bids us eat, drink, and be merry, for tomorrow we may die.",opts:[{label:"And his priests?",to:"b"},{label:"As you say.",to:"end"}]},b:{text:"Noah cast out the old priests and set up his own, proud men who idle their days in costly apparel. But hush; such talk is perilous.",opts:[{label:"I will say no more.",to:"end"}]}},
+/*2 Abinadi warning*/ {start:{text:"That man yonder is Abinadi. He came among us crying that unless we repent, the Lord will bring us into bondage and smite us.",opts:[{label:"Do you believe him?",to:"a"},{label:"What will the king do?",to:"b"},{label:"I will go and listen.",to:"end"}]},a:{text:"He says hard things, yet my heart trembles, for he speaks as one sent of God. I dare not say so where the guards might hear.",opts:[{label:"What will the king do?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Noah is wroth and has sworn to slay him. Two years past Abinadi fled for his life; now he has returned in disguise to warn us again.",opts:[{label:"A brave man.",to:"end"}]}},
+/*3 Abinadi testifies*/ {start:{text:"They have bound the prophet before the king and his priests. Still he will not recall his words; he testifies of a Redeemer who shall come.",opts:[{label:"What does he teach?",to:"a"},{label:"How does the king answer?",to:"b"},{label:"Let me hear him.",to:"end"}]},a:{text:"That God Himself shall come down, suffer, and redeem His people, and that salvation comes only through Christ the Lord. The priests cannot trap him in his words.",opts:[{label:"How does the king answer?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Noah was minded to free him at first, fearing his words, but the priests stir him to wrath. I fear it will end in fire.",opts:[{label:"God help him.",to:"end"}]}},
+/*4 Martyr; Alma*/ {start:{text:"It is done. They have burned the prophet alive. I cannot stop trembling. He died prophesying the king would suffer that same death by fire.",opts:[{label:"Did none believe him?",to:"a"},{label:"What of his prophecy?",to:"b"},{label:"A dark day.",to:"end"}]},a:{text:"One did, a young priest named Alma. He pleaded for Abinadi's life, and Noah cast him out and sent men to kill him. They say he escaped into the wilderness.",opts:[{label:"What of his prophecy?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Abinadi sealed his testimony with his blood, and his words will surely come to pass. May the Lord have mercy on this people.",opts:[{label:"Amen.",to:"end"}]}},
+/*5 Waters of Mormon*/ {start:{text:"Speak softly, friend. We gather here at the waters of Mormon, in the thicket, away from the king's spies. Alma teaches us the words of Abinadi.",opts:[{label:"What happens at these waters?",to:"a"},{label:"What have you promised?",to:"b"},{label:"Peace be with you.",to:"end"}]},a:{text:"Alma baptizes all who believe, already some four hundred and fifty souls. We are born of God and called His church.",opts:[{label:"What have you promised?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"To bear one another's burdens, to mourn with those that mourn, to comfort those in need, and to stand as witnesses of God always.",opts:[{label:"A holy covenant.",to:"end"}]}},
+/*6 Fall of Noah*/ {start:{text:"The Lamanites are within the walls! Run! In our flight the king commanded us to leave even our wives and children behind!",opts:[{label:"You would abandon their families?",to:"a"},{label:"Where is the king now?",to:"b"},{label:"I must flee!",to:"end"}]},a:{text:"What else, when the spears are at our backs? Yet it is a wicked thing, and the men are turning against Noah for commanding it.",opts:[{label:"Where is the king now?",to:"b"},{label:"Run!",to:"end"}]},b:{text:"Fled with us, but his own men lay hold on him. I think his end has come, just as Abinadi foretold. The daughters who stayed went out and pleaded, and were spared.",opts:[{label:"God have mercy.",to:"end"}]}},
+/*7 Priests and daughters*/ {start:{text:"Trouble upon trouble! Noah's old priests, hiding in the wilderness, have carried off some daughters of the Lamanites. Now the Lamanites blame us!",opts:[{label:"Will there be war?",to:"a"},{label:"Who rules you now?",to:"b"},{label:"Heaven help us.",to:"end"}]},a:{text:"They came against us in their fury, but our people went out and pleaded, and the Lamanite king saw it was not our doing. We are spared, for now.",opts:[{label:"Who rules you now?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Limhi, son of Noah, a gentler man than his father. But we are a people brought low, bound under the Lamanite yoke.",opts:[{label:"May better days come.",to:"end"}]}},
+/*8 Helam founded*/ {start:{text:"Welcome to Helam! Eight days we journeyed into the wilderness, and here Alma's people have built a city and planted our fields in peace.",opts:[{label:"Why did you leave Nephi?",to:"a"},{label:"Is it truly safe here?",to:"b"},{label:"A fair place.",to:"end"}]},a:{text:"The king's army hunted us for believing Abinadi. The Lord warned Alma to flee, so we gathered our flocks and grain and departed by night.",opts:[{label:"Is it truly safe here?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"For now we dwell in gladness, keeping the commandments and serving one another. Alma tends us like a shepherd. We could not be more content.",opts:[{label:"Long may it last.",to:"end"}]}},
+/*9 Bondage*/ {start:{text:"Mind your tongue near the guards. We are Limhi's people, and we deliver up half of all we have, our grain and our flocks, to the Lamanites.",opts:[{label:"How did you fall so low?",to:"a"},{label:"Have you not resisted?",to:"b"},{label:"Stay strong.",to:"end"}]},a:{text:"The sins of king Noah brought it upon us. After his fall the Lamanites suffered us to keep the land, but laid this heavy tribute on our backs.",opts:[{label:"Have you not resisted?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Three times we went up to battle, and three times we were beaten, and many widows were left to mourn. Now we humble ourselves and cry to the Lord.",opts:[{label:"May He hear you.",to:"end"}]}},
+/*10 Benjamin covenant*/ {start:{text:"We are gathered from all the land, our tents pitched toward the temple, to hear good king Benjamin speak from his tower before he dies.",opts:[{label:"What manner of king is he?",to:"a"},{label:"What does he teach?",to:"b"},{label:"Let me listen.",to:"end"}]},a:{text:"A king who labored with his own hands that we be not burdened with taxes, and who teaches that to serve one another is to serve our God. We love him dearly.",opts:[{label:"What does he teach?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"That an angel told him of Christ who shall come, and he gives us a new name, the children of Christ. The Spirit has wrought a mighty change in our hearts.",opts:[{label:"Blessed be his name.",to:"end"}]}},
+/*11 Amulon*/ {start:{text:"(barely a whisper) The taskmaster Amulon is watching. We are forbidden to pray aloud on pain of death, so we pour out our hearts in silence.",opts:[{label:"Who is this Amulon?",to:"a"},{label:"How do you bear it?",to:"b"},{label:"I will keep silent too.",to:"end"}]},a:{text:"One of Noah's old priests. The Lamanites set him to rule over us, a cruel jest, that the wicked we fled now hold the whip above our heads.",opts:[{label:"How do you bear it?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"The Lord told us He would ease our burdens, and so He has, till we scarcely feel them. We bear them with patience, and even with good cheer.",opts:[{label:"A quiet miracle.",to:"end"}]}},
+/*12 Ammon finds Limhi*/ {start:{text:"Have you heard? Strangers have come down from the north, from Zarahemla! Their leader is named Ammon. After all these years, we are found!",opts:[{label:"What does this mean for you?",to:"a"},{label:"Who sent them?",to:"b"},{label:"Wonderful news!",to:"end"}]},a:{text:"Limhi gathered us and bade us be of good comfort, that there is hope of deliverance from bondage at last. We will trust in God and make ready.",opts:[{label:"Who sent them?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"King Mosiah of Zarahemla, who never knew what became of our fathers when they went up to this land. Now Ammon will help us find the way home.",opts:[{label:"God be thanked.",to:"end"}]}},
+/*13 Escape Limhi*/ {start:{text:"(low voice) Tonight is the night. We have sent extra wine to the Lamanite guards, and they are deep in drink. Ready your flocks and say nothing.",opts:[{label:"How will you get past them?",to:"a"},{label:"Where will you go?",to:"b"},{label:"Go in peace.",to:"end"}]},a:{text:"Out the back way while they slumber, our cattle driven before us. If the Lord favors us, we will be long gone before the morning watch.",opts:[{label:"Where will you go?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Down through the wilderness to Zarahemla, the land of our kinsmen, where king Mosiah will receive us. We have prayed for this night for years.",opts:[{label:"God speed you home.",to:"end"}]}},
+/*14 Escape Alma*/ {start:{text:"Quietly, friend. A deep sleep from the Lord has fallen upon Amulon's guards. Alma bids us gather our flocks and our grain and steal away from Helam.",opts:[{label:"Will you truly escape?",to:"a"},{label:"Where will you go?",to:"b"},{label:"Go in peace.",to:"end"}]},a:{text:"The Lord promised to deliver us, and He has stopped the very eyes of our guards with slumber. We go out trusting wholly in Him.",opts:[{label:"Where will you go?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"To Zarahemla, to join king Mosiah and the rest of the Lord's people. Twelve days through the wilderness, but the Lord will lead us.",opts:[{label:"God be with you.",to:"end"}]}},
+/*15 Gathering*/ {start:{text:"What a day of rejoicing! Every people is gathered as one in Zarahemla, Limhi's people, Alma's people, and the people of Mosiah. We are scattered no more!",opts:[{label:"How did all this come to pass?",to:"a"},{label:"What does the king do now?",to:"b"},{label:"I rejoice with you!",to:"end"}]},a:{text:"The Lord brought every one of us out, some from bondage, some from the wilderness, and led us here. The records of our journeys were read aloud, and the people wept for joy.",opts:[{label:"What does the king do now?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Mosiah has given Alma authority to establish churches through all the land, that the word of God may be taught to every soul. The Lord has remembered us.",opts:[{label:"Praise be to God.",to:"end"}]}},
+/*16 Unbelief*/ {start:{text:"These are troubled times for the church. A whole generation has grown up that will not believe the words of their fathers, nor be baptized.",opts:[{label:"What is the trouble exactly?",to:"a"},{label:"What will Alma do?",to:"b"},{label:"A hard thing.",to:"end"}]},a:{text:"The unbelievers lead many astray with flattering words, and there are sins now even among the church. Alma knows not how he ought to judge them.",opts:[{label:"What will Alma do?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"He has gone to inquire of the Lord. They say the Lord answered: whoso repents shall be forgiven, but the unrepentant are not to be numbered among His people.",opts:[{label:"Wise counsel.",to:"end"}]}},
+/*17 Angel*/ {start:{text:"Did you see it? An angel of the Lord came down in a cloud, and his voice shook the earth! Alma the younger and the sons of Mosiah lie yonder as though dead.",opts:[{label:"Who is Alma the younger?",to:"a"},{label:"What did the angel say?",to:"b"},{label:"A fearful wonder.",to:"end"}]},a:{text:"The high priest's own son, a wicked man who went about in secret destroying the church and leading many into sin. None of us thought him reachable.",opts:[{label:"What did the angel say?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"He rebuked Alma for persecuting the church, and said it was the prayers of his father and the faithful that brought him low. Now we wait to see what manner of man shall rise.",opts:[{label:"God is merciful.",to:"end"}]}},
+/*18 Records*/ {start:{text:"King Mosiah has been translating an ancient record, twenty-four plates of pure gold, found long ago by Limhi's search party in a land covered with bones.",opts:[{label:"Whose record is it?",to:"a"},{label:"How can he read it?",to:"b"},{label:"A solemn work.",to:"end"}]},a:{text:"A people called the Jaredites, who came from the great tower when the Lord confounded the languages. They grew mighty, then destroyed themselves utterly in war.",opts:[{label:"How can he read it?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"By two seer stones, the interpreters, handed down for this very purpose. By the gift and power of God the king makes their tongue plain to us.",opts:[{label:"Marvelous.",to:"end"}]}},
+/*19 Judges*/ {start:{text:"A new thing today, friend! King Mosiah's sons would not take the throne, so he proposes we be governed by judges, chosen by the voice of the people.",opts:[{label:"Is it wise to have no king?",to:"a"},{label:"How will judges be chosen?",to:"b"},{label:"Momentous times.",to:"end"}]},a:{text:"Mosiah says a righteous king does much good, but a wicked one works great iniquity and is hard to dethrone. Better the burden of judgment be shared by all.",opts:[{label:"How will judges be chosen?",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"By the voice of the people, and judged in turn by higher judges if they stray. Alma the younger is to be our first chief judge. So ends the reign of the kings.",opts:[{label:"May it prosper.",to:"end"}]}}
+];
+function townSay(sc){ return TOWN[sc] || {start:{text:"Peace be unto you, traveler.",opts:[{label:"And unto you.",to:"end"}]}}; }
+/* --- hero lines, varying by scene where a hero recurs --- */
+var NOAH_REIGN={start:{text:"I am Noah, king over this land. Look upon my works, my palace, my tower, my vineyards. Is it not a glorious reign?",opts:[{label:"Your taxes burden the people.",to:"t"},{label:"And your priests?",to:"p"},{label:"A glorious reign, O king.",to:"end"}]},t:{text:"A fifth part is a trifle for the splendor they enjoy through me. Let them eat and drink and be glad. I will hear no complaints.",opts:[{label:"As you say.",to:"end"}]},p:{text:"I put away the doddering old priests and chose men after my own heart. They feast at my side and tell me what a fine king I am.",opts:[{label:"I see.",to:"end"}]}};
+var NOAH_TRIAL={start:{text:"This Abinadi vexes me with prophecies of doom. Who is he to say my reign shall end in bondage and fire?",opts:[{label:"Perhaps he speaks truly.",to:"t"},{label:"Will you free him?",to:"f"},{label:"Forgive me, O king.",to:"end"}]},t:{text:"Hold your tongue! ...And yet his words trouble me. No, my priests counsel me to be strong. I will not be cowed by a wandering madman.",opts:[{label:"I withdraw.",to:"end"}]},f:{text:"I was minded to, but he reviled me to my face and would not recall his words. Unless he takes them back, he shall surely die.",opts:[{label:"God help him.",to:"end"}]}};
+var NOAH_FALL={start:{text:"The Lamanites are upon us! Flee with me, leave the women, leave the children, only run!",opts:[{label:"You would abandon their families?",to:"a"},{label:"Abinadi foretold this.",to:"b"},{label:"I must run!",to:"end"}]},a:{text:"Would you have us all perish? ...The men murmur against me even now. I begin to fear I have led them only to ruin.",opts:[{label:"Abinadi foretold this.",to:"b"},{label:"Farewell.",to:"end"}]},b:{text:"Do not speak that name to me! ...His word follows me like a shadow. Is there no escape from a dead man's prophecy?",opts:[{label:"There is none.",to:"end"}]}};
+var ABINADI_WARN={start:{text:"Thus saith the Lord: except this people repent, I will visit them in mine anger, and they shall be brought into bondage and smitten on the cheek.",opts:[{label:"Do you not fear the king?",to:"f"},{label:"What must we do?",to:"d"},{label:"Farewell.",to:"end"}]},f:{text:"I have done as the Lord commanded. Once I fled from Noah; now I return in disguise to deliver His message. Let them do with me what they will.",opts:[{label:"What must we do?",to:"d"},{label:"Farewell.",to:"end"}]},d:{text:"Repent, and turn unto the Lord. Remember His commandments, and look to the Redeemer who shall come to break the bands of death.",opts:[{label:"I will remember.",to:"end"}]}};
+var ABINADI_TRIAL={start:{text:"They have bound me before the king, yet I will not recall my words, for they are true. God Himself shall come down to redeem His people.",opts:[{label:"They will surely kill you.",to:"k"},{label:"Tell me of this Redeemer.",to:"r"},{label:"Be strong.",to:"end"}]},k:{text:"If ye slay me, ye will shed innocent blood, and this shall stand as a witness against you at the last day. I cannot deny what God has shown me.",opts:[{label:"Tell me of this Redeemer.",to:"r"},{label:"Farewell.",to:"end"}]},r:{text:"He shall be called the Son of God, and shall suffer death for us, and break the bands of death to bring the resurrection. Salvation is in Him alone.",opts:[{label:"I believe you.",to:"end"}]}};
+var ALMA_FLEE={start:{text:"Abinadi's words burn in my heart. I pleaded for his life, and the king cast me out and sent men to slay me. I must hide and write down all the prophet taught.",opts:[{label:"You believed him, then?",to:"b"},{label:"Where will you go?",to:"w"},{label:"Go safely.",to:"end"}]},b:{text:"Every word. He testified of Christ and of redemption, and I knew it was the truth. I cannot serve in Noah's court a day longer.",opts:[{label:"Where will you go?",to:"w"},{label:"Farewell.",to:"end"}]},w:{text:"To a place I know, a thicket of trees beside a fountain of pure water, the place of Mormon. There I will teach all who come to hear.",opts:[{label:"The Lord be with you.",to:"end"}]}};
+var ALMA_WATERS={start:{text:"Welcome, if you come in faith. Here at the waters of Mormon I teach the words of Abinadi, and baptize all who desire to come into the fold of God.",opts:[{label:"How many have come?",to:"n"},{label:"What do they covenant?",to:"c"},{label:"Peace be with you.",to:"end"}]},n:{text:"About four hundred and fifty souls, and we have organized as the church of Christ, with priests to teach. We do it in secret, for Noah's spies are everywhere.",opts:[{label:"What do they covenant?",to:"c"},{label:"Farewell.",to:"end"}]},c:{text:"To bear one another's burdens, to mourn with those that mourn, and to stand as witnesses of God at all times and in all places. So are they baptized.",opts:[{label:"A holy covenant.",to:"end"}]}};
+var ALMA_HELAM={start:{text:"The Lord warned me Noah's armies were coming, so we fled eight days into the wilderness, and here we have built Helam. It is a good land.",opts:[{label:"How do your people fare?",to:"f"},{label:"Do you not fear discovery?",to:"d"},{label:"Peace be with you.",to:"end"}]},f:{text:"They prosper and keep the commandments, and I have taught them never to trust in any king, but in God alone. We serve one another in gladness.",opts:[{label:"Do you not fear discovery?",to:"d"},{label:"Farewell.",to:"end"}]},d:{text:"I trust the Lord to keep us. Yet I confess a watchfulness, for the wilderness hides many wanderers, and not all of them are friends.",opts:[{label:"May He guard you.",to:"end"}]}};
+var LIMHI_BONDAGE={start:{text:"I am Limhi, son of Noah. I rule a people in bondage, and my father's sins lie heavy on us all. We give half of all we have to the Lamanites.",opts:[{label:"Could you not throw off the yoke?",to:"y"},{label:"What hope remains?",to:"h"},{label:"I grieve for your people.",to:"end"}]},y:{text:"We tried, three times we went to battle, and three times were driven back with great slaughter. Now I would have my people humble themselves and trust in God.",opts:[{label:"What hope remains?",to:"h"},{label:"Farewell.",to:"end"}]},h:{text:"I know not, save that the Lord is slow to anger toward the penitent. We cry to Him daily. Surely He will not forget a people who turn to Him.",opts:[{label:"May He deliver you.",to:"end"}]}};
+var LIMHI_HOPE={start:{text:"Ammon and his brethren have come from Zarahemla! For the first time in long years I have hope of leading my people out of bondage.",opts:[{label:"How will you escape?",to:"e"},{label:"What did you learn from Ammon?",to:"a"},{label:"God be with you.",to:"end"}]},e:{text:"We will lay a plan. If the Lord softens the way, we will gather our flocks and slip past the guards by night, down to the land of Zarahemla.",opts:[{label:"What did you learn from Ammon?",to:"a"},{label:"Farewell.",to:"end"}]},a:{text:"That our kinsmen still live, and a prophet-king, Mosiah, reigns there in peace. I have shown Ammon the gold plates our search party found, a record we cannot read.",opts:[{label:"May you reach home.",to:"end"}]}};
+var BENJAMIN={start:{text:"I have gathered you to give this people a name, and to teach you that when ye are in the service of your fellow beings, ye are only in the service of your God.",opts:[{label:"What name do you give us?",to:"n"},{label:"Teach me, O king.",to:"t"},{label:"Thank you, King Benjamin.",to:"end"}]},n:{text:"Ye shall be called the children of Christ, for this day He hath spiritually begotten you. Take His name upon you.",opts:[{label:"Teach me more.",to:"t"},{label:"Farewell.",to:"end"}]},t:{text:"Believe in God; believe that ye must repent and humble yourselves. Then shall ye always rejoice, and be filled with His love.",opts:[{label:"I will remember.",to:"end"}]}};
+var AMULON={start:{text:"I am Amulon. King Laman has set me over this land. Labor, pay your tribute, and pray not to your God, on pain of death.",opts:[{label:"Why forbid our prayers?",to:"p"},{label:"We will bear it.",to:"b"},{label:"Say no more.",to:"end"}]},p:{text:"Because I will not have it. Yet I see your burdens made light and your faces undismayed. Strange is this God of yours.",opts:[{label:"He strengthens us.",to:"end"}]},b:{text:"See that you do. Your God may ease your loads, but I will not ease my watch.",opts:[{label:"Understood.",to:"end"}]}};
+var AMMON={start:{text:"I am Ammon, a descendant of Zarahemla. With sixteen strong men I searched out this land, and found you, the people of Limhi.",opts:[{label:"Can you lead us to Zarahemla?",to:"l"},{label:"What news from the north?",to:"n"},{label:"Well met.",to:"end"}]},l:{text:"If your king will gather his people, we shall go down to Zarahemla together, where Mosiah reigns and you may dwell in safety.",opts:[{label:"God be thanked.",to:"end"}]},n:{text:"King Mosiah has long wondered your fate, for it was your fathers who went up from Zarahemla and were never heard from again.",opts:[{label:"Now you have found us.",to:"end"}]}};
+var MOSIAH_GATHER={start:{text:"I am Mosiah, son of Benjamin. This day I have gathered all the people into one, those of Limhi, those of Alma, and my own. The Lord has been gracious.",opts:[{label:"What of the people brought in?",to:"p"},{label:"What now for the church?",to:"c"},{label:"Blessings, O king.",to:"end"}]},p:{text:"I had the records of their journeys read to all the people, that they might know the goodness of God in their deliverance. There was much weeping and much joy.",opts:[{label:"What now for the church?",to:"c"},{label:"Farewell.",to:"end"}]},c:{text:"I have given Alma authority to establish churches throughout the land, and to ordain priests and teachers, that the word of God reach every soul.",opts:[{label:"Wisely done.",to:"end"}]}};
+var MOSIAH_UNBELIEF={start:{text:"My heart is heavy. A rising generation will not believe the words of their fathers, and there are dissensions and sins within the church.",opts:[{label:"How will the church be governed?",to:"g"},{label:"Can such people be reclaimed?",to:"r"},{label:"Be strengthened, O king.",to:"end"}]},g:{text:"That burden I have laid upon Alma, who presides over the church. He has inquired of the Lord how he ought to judge those who transgress.",opts:[{label:"Can such people be reclaimed?",to:"r"},{label:"Farewell.",to:"end"}]},r:{text:"The Lord is merciful: as often as they repent and seek forgiveness with real intent, they shall be forgiven. But the unrepentant He will not own.",opts:[{label:"A just answer.",to:"end"}]}};
+var MOSIAH_RECORDS={start:{text:"I am Mosiah. By the gift and power of God I have translated the twenty-four gold plates found in the north, the record of a fallen people.",opts:[{label:"Who were these people?",to:"w"},{label:"How were the plates found?",to:"f"},{label:"A solemn work, O king.",to:"end"}]},w:{text:"The Jaredites, who came from the great tower of old, when the Lord confounded the language of the people. They became mighty, then destroyed one another in their wickedness.",opts:[{label:"How were the plates found?",to:"f"},{label:"Farewell.",to:"end"}]},f:{text:"Limhi's men, seeking Zarahemla, came upon a land of bones and ruins and bore back these plates. I read them by the interpreters handed down to me.",opts:[{label:"A warning to us all.",to:"end"}]}};
+var MOSIAH_JUDGES={start:{text:"I am Mosiah. My sons will not reign after me, so I would give this people their liberty, to be governed not by a king but by judges of their own choosing.",opts:[{label:"Why turn away from kings?",to:"k"},{label:"How shall it be ordered?",to:"o"},{label:"Wise counsel, O king.",to:"end"}]},k:{text:"A righteous king does much good, but a wicked one leads a whole nation into sin, and can scarce be removed save by bloodshed. Let the burden be borne by the voice of the people.",opts:[{label:"How shall it be ordered?",to:"o"},{label:"Farewell.",to:"end"}]},o:{text:"Judges chosen by the people, and answerable to higher judges if they pervert the law, so that no one man holds the whole power. So ends the reign of the kings.",opts:[{label:"May it prosper.",to:"end"}]}};
+var ANGEL={start:{text:"Alma, arise! Why persecutest thou the church of God? The Lord hath heard the prayers of His people, and of thy father.",opts:[{label:"Who are you?",to:"w"},{label:"I tremble before you.",to:"end"}]},w:{text:"I am sent to convince thee of the power of God. Go thy way, and seek to destroy the church no more.",opts:[{label:"I will repent.",to:"end"}]}};
+var PRIESTS={start:{text:"We are the priests of Noah, fled into the wilderness. We dare not return, for the people would surely slay us.",opts:[{label:"You seized the Lamanite daughters!",to:"d"},{label:"What will you do now?",to:"x"},{label:"Leave me be.",to:"end"}]},d:{text:"We were desperate men. It nearly brought war upon Limhi's people. We have much to answer for.",opts:[{label:"Indeed you do.",to:"end"}]},x:{text:"We will join with Amulon and seek favor among the Lamanites. It is the only road left to us.",opts:[{label:"A dark road.",to:"end"}]}};
+var SHEEP={start:{text:"Baaa.",opts:[{label:"Hello there, little one.",to:"a"},{label:"Are you one of the Good Shepherd's flock?",to:"b"},{label:"(Pet the sheep)",to:"c"},{label:"Carry on, friend.",to:"end"}]},
+  a:{text:"Baaa. (It blinks at you, unbothered, and goes on chewing.)",opts:[{label:"Are you lost from your fold?",to:"d"},{label:"(Pet the sheep)",to:"c"},{label:"Farewell.",to:"end"}]},
+  b:{text:"Baaaa! (The sheep seems strangely pleased by the question.)",opts:[{label:"I'll take that as a yes.",to:"e"},{label:"(Pet the sheep)",to:"c"},{label:"Farewell.",to:"end"}]},
+  c:{text:"Baa. Baa. (It leans contentedly into your hand. The wool is warm and impossibly soft.)",opts:[{label:"Any wisdom for me, wise sheep?",to:"e"},{label:"Good sheep. Farewell.",to:"end"}]},
+  d:{text:"Baaa... (It takes a half-step away, then looks back, as if waiting for you to follow it home.)",opts:[{label:"Lead on, then.",to:"f"},{label:"(Pet the sheep once more)",to:"c"},{label:"Another time. Farewell.",to:"end"}]},
+  e:{text:"Baa. (A wise sheep knows the voice of its shepherd. Or perhaps it merely wants more grass. With sheep it is ever hard to tell.)",opts:[{label:"Wise words indeed. Farewell.",to:"end"}]},
+  f:{text:"Baa! (It trots a few paces, stops to nibble a tuft of grass, and forgets entirely where it was going.)",opts:[{label:"Hopeless. But endearing. Farewell.",to:"end"}]}};
+var FAITHFUL_LIMHI={start:{text:"Walk softly with us. We are Limhi's people, and tonight we flee the Lamanites at last. The guards are drunk on the wine we sent them.",opts:[{label:"How did you arrange it?",to:"a"},{label:"Where are you bound?",to:"w"},{label:"Go in peace.",to:"end"}]},a:{text:"By Ammon's counsel. We gathered our flocks and grain in secret, and sent an extra tribute of wine to the guard, that they might sleep deeply tonight.",opts:[{label:"Where are you bound?",to:"w"},{label:"Farewell.",to:"end"}]},w:{text:"To Zarahemla, the land of our fathers' kin, where king Mosiah will receive us. We have waited long years for this night.",opts:[{label:"God speed you home.",to:"end"}]}};
+var FAITHFUL_ALMA={start:{text:"Come quietly. We are Alma's people, and the Lord has cast a deep sleep upon Amulon's guards. We gather our flocks and leave Helam this very hour.",opts:[{label:"How is such an escape possible?",to:"a"},{label:"Where are you bound?",to:"w"},{label:"Go in peace.",to:"end"}]},a:{text:"The Lord promised to deliver us, and He has stopped the eyes of our guards with slumber. We do nothing but trust and obey, and walk out free.",opts:[{label:"Where are you bound?",to:"w"},{label:"Farewell.",to:"end"}]},w:{text:"To Zarahemla, to join king Mosiah and the people of God. The Lord goes before us through the wilderness.",opts:[{label:"God be with you.",to:"end"}]}};
+function heroSay(name,sc){ switch(name){
+  case "King Noah": return sc===6?NOAH_FALL:((sc===2||sc===3)?NOAH_TRIAL:NOAH_REIGN);
+  case "Abinadi": return sc===3?ABINADI_TRIAL:ABINADI_WARN;
+  case "Alma": return sc===5?ALMA_WATERS:(sc===8?ALMA_HELAM:ALMA_FLEE);
+  case "King Limhi": return sc===12?LIMHI_HOPE:LIMHI_BONDAGE;
+  case "King Benjamin": return BENJAMIN;
+  case "Amulon": return AMULON;
+  case "Ammon": return AMMON;
+  case "King Mosiah": return sc===15?MOSIAH_GATHER:(sc===18?MOSIAH_RECORDS:(sc===19?MOSIAH_JUDGES:MOSIAH_UNBELIEF));
+  case "An Angel of the Lord": return ANGEL;
+  case "Noah's Priests": return PRIESTS;
+  case "The Faithful": return sc===14?FAITHFUL_ALMA:FAITHFUL_LIMHI;
+} return null; }
+function drawMinimap(){ var W=world, S=Math.min(116, Wc*0.30), pad=12, x0=Wc-S-pad, y0=pad; ctx.save();
+  ctx.fillStyle="rgba(14,16,24,0.62)"; roundRect(x0-4,y0-4,S+8,S+8,9); ctx.fill(); ctx.strokeStyle="rgba(201,162,39,0.5)"; ctx.lineWidth=1; ctx.stroke();
+  roundRect(x0,y0,S,S,6); ctx.clip(); ctx.fillStyle="rgba(58,64,52,0.55)"; ctx.fillRect(x0,y0,S,S); var sc=S/W.n; function mx(c){return x0+c*sc;} function my(r){return y0+r*sc;}
+  for(var r=0;r<W.n;r++)for(var c=0;c<W.n;c++){ var t=W.grid[r][c], col=null; if(t==="water")col="rgba(90,140,150,0.6)"; else if(t==="road"||t==="plaza")col="rgba(150,130,90,0.4)"; else if(t==="field")col="rgba(120,110,60,0.4)"; if(col){ctx.fillStyle=col;ctx.fillRect(mx(c),my(r),sc+0.6,sc+0.6);} }
+  W.ents.forEach(function(e){ var col=null; if(e.type==="house")col="rgba(120,96,60,0.95)"; else if(e.type==="wall")col="rgba(92,82,68,0.95)"; else if(e.type==="temple")col="rgba(200,170,90,0.95)"; else if(e.type==="tower")col="#e7c64a"; else if(e.type==="gate")col="rgba(170,120,60,1)"; if(col){ctx.fillStyle=col;ctx.fillRect(mx(e.c),my(e.r),Math.max(1.6,(e.w||1)*sc),Math.max(1.6,(e.d||1)*sc));} });
+  ctx.fillStyle="rgba(240,236,220,0.65)"; world.actors.forEach(function(a){ if(a.hero||a.merchant) return; var ap=actorPos(a); ctx.fillRect(mx(ap[0])-0.6,my(ap[1])-0.6,1.7,1.7); });
+  ctx.fillStyle="#f0c843"; world.actors.forEach(function(a){ if(!(a.hero||a.merchant)) return; var ap=actorPos(a); ctx.beginPath(); ctx.arc(mx(ap[0]),my(ap[1]),2.1,0,6.28); ctx.fill(); });
+  var pxm=mx(WALK.player.x), pym=my(WALK.player.y), fx=Math.cos(WALK.yaw),fy=Math.sin(WALK.yaw);
+  ctx.fillStyle="#7fd0ff"; ctx.beginPath(); ctx.moveTo(pxm+fx*5.5,pym+fy*5.5); ctx.lineTo(pxm-fy*3.6-fx*2.4,pym+fx*3.6-fy*2.4); ctx.lineTo(pxm+fy*3.6-fx*2.4,pym-fx*3.6-fy*2.4); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle="rgba(0,0,0,0.5)"; ctx.lineWidth=0.8; ctx.stroke(); ctx.restore(); }
+
+/* ===================== RENDER LOOP ===================== */
+function renderIso(t){
+  if(cam.anim){ var k=Math.min(1,(t-cam.t0)/650); var e=1-Math.pow(1-k,3); cam.x=lerp(cam.sx,cam.tx,e); cam.y=lerp(cam.sy,cam.ty,e); cam.zoom=lerp(cam.sz,cam.tz,e); if(k>=1) cam.anim=false; }
+  ctx.setTransform(DPR,0,0,DPR,0,0); drawBackdrop();
+  ctx.save(); ctx.translate(cam.x,cam.y); ctx.scale(cam.zoom,cam.zoom);
+  for(var sgn=0;sgn<world.n*2;sgn++){ for(var r=0;r<world.n;r++){ var c=sgn-r; if(c<0||c>=world.n) continue; drawTile(c,r, world.grid[r][c]); } }
+  var list=[], heroes=[]; world.ents.forEach(function(e){ var depth=(e.c+(e.w||1))+(e.r+(e.d||1)); if(e.type==="tree") depth=(e.c+0.7)+(e.r+0.7); list.push({d:depth,e:e}); });
+  world.actors.forEach(function(a){ if(a.hero){ heroes.push(a); } else { list.push({d:(a.c+a.r),a:a}); } });
+  list.sort(function(p,q){ return p.d-q.d; });
+  for(var i=0;i<list.length;i++){ if(list[i].e) drawEntity(list[i].e); else drawPerson(list[i].a); }
+  ctx.restore();
+  drawWorldTint(); drawFocusDim();
+  ctx.save(); ctx.translate(cam.x,cam.y); ctx.scale(cam.zoom,cam.zoom);
+  heroes.sort(function(p,q){ return (p.fixed?-1:(p.c+p.r)) - (q.fixed?-1:(q.c+q.r)); });
+  for(var h=0;h<heroes.length;h++){ drawPerson(heroes[h]); }
+  ctx.restore();
+  drawBeam(); drawWeather(); drawVignette(); drawHeroLabels(); }
+var lastT=now();
+function frame(t){ var dt=Math.min(t-lastT,50); lastT=t;
+  updateActors(dt);
+  if(WALK.active){ updateWalk(dt); renderWalk(); }
+  else { renderIso(t); }
+  requestAnimationFrame(frame); }
+
+/* ===================== SCENES ===================== */
+var SCENES=[
+  {t:"Zeniff's Colony Rebuilds Nephi", d:"~200 BC · Mosiah 9–10", place:"nephi", light:"golden", focus:"plaza", shot:"establish", zoom:0.92, mods:[], cap:"You stand in the highland city of Lehi-Nephi, reclaimed by Zeniff's colony. People rebuild and trade in the streets."},
+  {t:"King Noah Reigns", d:"~160 BC · Mosiah 11", place:"nephi", light:"day", focus:"tower", shot:"tower", zoom:1.6, mods:["noah"], cap:"King Noah surveys his city from the lofty tower his taxes built."},
+  {t:"Abinadi's Warning", d:"~150 BC · Mosiah 11–12", place:"nephi", light:"dusk", focus:"hero", shot:"closeup", zoom:1.95, mods:["abinadi"], cap:"The prophet Abinadi stands before Noah's tower, crying repentance as guards and a crowd gather."},
+  {t:"Abinadi Testifies of Christ", d:"~150 BC · Mosiah 12–16", place:"nephi", light:"dusk", focus:"hero", shot:"closeup", zoom:2.15, mods:["court"], cap:"Bound before the king's court, Abinadi testifies boldly of the coming Redeemer."},
+  {t:"Abinadi Martyred; Alma Believes", d:"~150 BC · Mosiah 17", place:"nephi", light:"ashen", focus:"hero", shot:"closeup", zoom:2.0, mods:["martyr"], cap:"Abinadi is put to death by fire. One young priest — Alma — slips toward the wilderness, believing his words."},
+  {t:"The Waters of Mormon", d:"~147 BC · Mosiah 18", place:"mormon", light:"dawn", focus:"hero", shot:"closeup", zoom:1.95, mods:["baptism"], cap:"At a hidden forest fountain, Alma baptizes about 450 believers and secretly organizes the church."},
+  {t:"The Fall of King Noah", d:"~145 BC · Mosiah 19", place:"nephi", light:"storm", focus:"plaza", shot:"establish", zoom:0.9, mods:["fall"], cap:"Lamanite warriors storm the city. Noah is overtaken and dies by fire, just as Abinadi foretold."},
+  {t:"Priests & the Lamanite Daughters", d:"~145 BC · Mosiah 19–20", place:"nephi", light:"dusk", focus:"hero", shot:"closeup", zoom:1.75, mods:["priestsFlee"], cap:"Noah's fugitive priests seize Lamanite daughters, nearly igniting war upon the people of Limhi."},
+  {t:"Alma's People Found Helam", d:"~143 BC · Mosiah 23", place:"helam", light:"golden", focus:"hero", shot:"tower", zoom:1.55, mods:["helamBless"], cap:"Eight days into the wilderness, Alma's church builds the quiet refuge of Helam among its fields."},
+  {t:"Limhi's People in Bondage", d:"~145–121 BC · Mosiah 21", place:"nephi", light:"ashen", focus:"hero", shot:"closeup", zoom:1.85, mods:["bondage"], cap:"Lamanite guards loom over Limhi and his subdued people, who labor under heavy tribute."},
+  {t:"Benjamin's Covenant (in Zarahemla)", d:"~124 BC · Mosiah 1–6", place:"zarahemla", light:"radiant", focus:"tower", shot:"tower", zoom:1.45, mods:["benjamin"], cap:"Far to the north — and only now in the timeline — Benjamin speaks from his tower to the gathered multitude of Zarahemla."},
+  {t:"Amulon's Persecution", d:"~122 BC · Mosiah 23–24", place:"helam", light:"harsh", focus:"hero", shot:"closeup", zoom:1.85, mods:["amulon"], cap:"Amulon sets taskmasters over Helam, forbidding Alma's people to pray. Their burdens are made light."},
+  {t:"Ammon Finds Limhi", d:"~121 BC · Mosiah 7–8", place:"nephi", light:"day", focus:"hero", shot:"closeup", zoom:1.8, mods:["scouts"], cap:"Ammon and his small party arrive from the north and discover Limhi's enslaved people."},
+  {t:"The Escape of Limhi's People", d:"~121 BC · Mosiah 22", place:"nephi", light:"night", focus:"gate", shot:"establish", zoom:1.15, dim:0.28, mods:["escape"], cap:"With the guards made drunk, Limhi's people slip out the gate by night, toward the road down to Zarahemla."},
+  {t:"The Escape of Alma's People", d:"~120 BC · Mosiah 24", place:"helam", light:"night", focus:"gate", shot:"establish", zoom:1.15, dim:0.28, mods:["escape"], cap:"A deep sleep falls on the guards; Alma's people gather their flocks and steal away from Helam."},
+  {t:"The Gathering in Zarahemla", d:"~120 BC · Mosiah 25", place:"zarahemla", light:"day", focus:"plaza", shot:"establish", zoom:0.95, mods:["gatherHuge"], cap:"All three peoples are gathered as one in Zarahemla. Every journey has finally ended here."},
+  {t:"Unbelief & Church Discipline", d:"~110 BC · Mosiah 26", place:"zarahemla", light:"ashen", focus:"tower", shot:"tower", zoom:1.4, mods:["gather"], cap:"The united church is troubled by a rising generation of unbelievers; Alma seeks the Lord on how to judge them."},
+  {t:"Alma the Younger Converted", d:"~100 BC · Mosiah 27", place:"zarahemla", light:"radiant", focus:"hero", shot:"closeup", zoom:1.85, dim:0.6, beam:true, mods:["angel"], cap:"An angel descends in glory. Alma the Younger and the sons of Mosiah fall to the earth and are changed."},
+  {t:"Records Translated", d:"~92 BC · Mosiah 28", place:"zarahemla", light:"day", focus:"hero", shot:"closeup", zoom:1.8, dim:0.4, mods:["records"], cap:"Mosiah translates the 24 gold plates found long ago in the far north, revealing the Jaredite record."},
+  {t:"The Reign of the Judges", d:"~91 BC · Mosiah 29", place:"zarahemla", light:"golden", focus:"plaza", shot:"establish", zoom:1.0, mods:["gatherHuge"], cap:"Kingship gives way to the reign of the judges, closing the book of Mosiah."}
+];
+var NPCACTION=["rebuild","court","listen","listen","recoil","pray","panic","panic","rebuild","labor","listen","pray","labor","","","celebrate","listen","watch","watch","vote"];
+function buildPlace(place, mods){ var W;
+  if(place==="nephi") W=genCity("nephi",{seed:11,n:22,walls:true,towerH:84,style:"nephi"});
+  else if(place==="zarahemla") W=genCity("zarahemla",{seed:5,n:24,walls:true,towerH:92,style:"zarahemla"});
+  else if(place==="mormon") W=genWilderness({seed:21});
+  else W=genSettlement({seed:33});
+  buildWalkList(W);
+  // base citizens (varies by place)
+  var rng=mkRng((place==="zarahemla"?500:300));
+  var occ=[]; for(var r=0;r<W.n;r++){occ[r]=[];}
+  W.ents.forEach(function(e){ for(var i=0;i<(e.w||1);i++)for(var j=0;j<(e.d||1);j++){ if(occ[e.r+j]) occ[e.r+j][e.c+i]=true; } });
+  var basePop = place==="zarahemla"?18 : place==="nephi"?16 : place==="helam"?12 : 0;
+  addCitizens(W,occ,basePop,rng,W.focus.tile,0.2);
+  world=W; applyMods(W, mods); return W; }
+
+var scene=-1, playing=false, playTimer=null, selectedLm=null;
+function buildScrubber(){ var h=""; for(var i=0;i<SCENES.length;i++) h+='<div class="tick" data-i="'+i+'"></div>'; document.getElementById("scrubber").innerHTML=h; }
+function updateScrub(){ var ticks=document.querySelectorAll("#scrubber .tick"); for(var i=0;i<ticks.length;i++){ ticks[i].className="tick"+(i<scene?" past":"")+(i===scene?" now":""); } }
+function pinSvg(){ return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c9a227" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>'; }
+function renderContent(){ var c=document.getElementById("content");
+  if(selectedLm){ c.innerHTML='<div class="lm"><button class="x" id="lmX">&times;</button><div class="k">'+selectedLm.kind+'</div><div class="n">'+selectedLm.name+'</div><div class="i">'+selectedLm.info+'</div></div>';
+    document.getElementById("lmX").addEventListener("click",function(){ selectedLm=null; renderContent(); }); }
+  else { var S=SCENES[scene]; c.innerHTML='<div class="cap"><span class="pin">'+pinSvg()+'</span><span>'+S.cap+'</span></div>'; } }
+function frameTarget(S){ var P, off=0;
+  if(S.focus==="hero" && world.primaryHero){ P=heroWorld(world.primaryHero); off=(STAGE.shot==="closeup"? 44 : 18); }
+  else if(S.focus==="tower" && world.tower){ P={x:world.tower.anchor.x, y:world.tower.anchor.y}; off=-40; }
+  else if(S.focus==="gate" && world.gate){ P=iso(world.gate[0]+0.5,world.gate[1]+0.5); off=10; }
+  else if(S.focus==="water" && world._pool){ P=iso(world._pool[0],world._pool[1]); off=6; }
+  else if(S.focus==="temple" && world.temple){ P=iso(world.temple[0]+1.5,world.temple[1]+1); off=20; }
+  else { var ft=world.focus.tile; P=iso(ft[0],ft[1]); off=24; }
+  return {x:P.x, y:P.y-off}; }
+function setScene(i,animate){ scene=clamp(i,0,SCENES.length-1); selectedLm=null; var S=SCENES[scene];
+  STAGE.mood=MOODS[S.light]||MOODS.day; STAGE.lightning=0;
+  STAGE.shot=S.shot||"establish";
+  STAGE.dim=(S.dim!=null)? S.dim : (STAGE.shot==="closeup"?0.55: STAGE.shot==="tower"?0.3: 0);
+  STAGE.beam=!!S.beam;
+  STAGE.heroBoost=(STAGE.shot==="closeup"?1.35: STAGE.shot==="tower"?1.18: 1.05);
+  buildPlace(S.place, S.mods);
+  applyNPCActions(world, NPCACTION[scene]);
+  if(WALK.active) walkSyncScene();
+  document.getElementById("sceneTitle").textContent=S.t;
+  document.getElementById("sceneMeta").textContent=(scene+1)+" / "+SCENES.length+"  ·  "+S.d;
+  var chips=document.querySelectorAll(".chip"); for(var k=0;k<chips.length;k++){ chips[k].classList.toggle("on", chips[k].getAttribute("data-go")===S.place); }
+  var tgt=frameTarget(S); focusWorld(tgt.x, tgt.y, S.zoom||1.0, animate);
+  updateScrub(); renderContent(); }
+function showLandmark(L){ stopPlay(); selectedLm=L; renderContent(); focusWorld(L.ax, L.ay+20, Math.max(cam.zoom,1.3), true); }
+function startPlay(){ playing=true; document.getElementById("playIcon").innerHTML='<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>'; tick();
+  function tick(){ playTimer=setTimeout(function(){ if(scene>=SCENES.length-1){ stopPlay(); return; } setScene(scene+1,true); tick(); }, 4600); } }
+function stopPlay(){ playing=false; if(playTimer) clearTimeout(playTimer); document.getElementById("playIcon").innerHTML='<path d="M8 5v14l11-7z"/>'; }
+
+/* ===================== WIRE ===================== */
+resize(); buildScrubber(); setScene(0,false);
+(function(){ var t=frameTarget(SCENES[0]); focusWorld(t.x,t.y,SCENES[0].zoom,false); })();
+requestAnimationFrame(frame);
+document.getElementById("prevBtn").addEventListener("click",function(){ stopPlay(); setScene(scene-1,true); });
+document.getElementById("nextBtn").addEventListener("click",function(){ stopPlay(); setScene(scene+1,true); });
+document.getElementById("playBtn").addEventListener("click",function(){ playing?stopPlay():startPlay(); });
+document.getElementById("scrubber").addEventListener("click",function(e){ var t=e.target.closest(".tick"); if(t){ stopPlay(); setScene(parseInt(t.getAttribute("data-i"),10),true); } });
+document.getElementById("zin").addEventListener("click",function(){ zoomAround(Wc/2,Hc/2,1.22); });
+document.getElementById("zout").addEventListener("click",function(){ zoomAround(Wc/2,Hc/2,1/1.22); });
+document.getElementById("zfit").addEventListener("click",function(){ var t=frameTarget(SCENES[scene]); focusWorld(t.x,t.y,SCENES[scene].zoom||1.0,true); });
+var chips=document.querySelectorAll(".chip"); for(var ci=0;ci<chips.length;ci++){ chips[ci].addEventListener("click",function(){ stopPlay();
+  var idx={nephi:1,mormon:5,helam:8,zarahemla:10}[this.getAttribute("data-go")]; setScene(idx,true); }); }
+walkInit();
+window.addEventListener("resize",function(){ var t=frameTarget(SCENES[scene]); focusWorld(t.x,t.y,cam.zoom,false); });
+</script>
+</body>
+</html>
